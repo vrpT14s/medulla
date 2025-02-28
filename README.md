@@ -2,9 +2,7 @@
 
 <p align="center">
   <img 
-    src="https://picsum.photos/600/300?grayscale" 
-    alt="Grayscale image"
-    style="border-radius: 10px; display: block; margin: 0 auto 20px auto;" 
+    src="./assets/banner.png" width="600"
   />
 </p>
     
