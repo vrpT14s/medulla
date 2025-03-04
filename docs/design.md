@@ -1,19 +1,27 @@
-# Your Project Title
+# Project Overview
+> Please DON'T remove notes for AI
 
-## Project Requirements
-A description of the project requirements. 
+## Requirements
+> Notes for AI: Keep it simple and clear.
 
 ## Utility Functions
+> Notes for AI:
+> 1. Understand the utility functions thoroughly by reviewing the doc.
+> 2. Only include the most important functions to start.
 
 1. **Call LLM** (`utils/call_llm.py`)
 
-## Flow Design
+## Flow Architecture
+> Notes for AI:
+> 1. Consider the design patterns of agent, map-reduce, rag, and workflow. Apply them if they fit.
+> 2. Present a concise and high-level description of the workflow.
 
 1. **First Node**
 2. **Second Node**
 3. **Third Node**
 
 ### Flow Diagram
+> Notes for AI: Carefully decide whether to use Batch/Async Node/Flow.
 
 ```mermaid
 flowchart TD
@@ -23,7 +31,7 @@ flowchart TD
 
 ## Data Structure
 
-The shared memory structure will be organized as follows:
+The shared memory structure is organized as follows:
 
 ```python
 shared = {
@@ -31,17 +39,16 @@ shared = {
 }
 ```
 
-## Node Designs
+## Node Specifications
 
 ### 1. First Node
-- **Purpose**: What the node does
-- **Design**: Regular Node (no Batch/Async)
-- **Data Access**: 
-  - Read: "key" from shared store
-  - Write: "key" to shared store
+- **Purpose**: Provide a short explanation of the node’s function
+- **Design**: Decide between Regular, Batch, Async
+- **Data Access**:
+  - Read: "key" from the shared store
+  - Write: "key" to the shared store
 
 ### 2. Second Node
 ...
 
 ### 3. Third Node
-
