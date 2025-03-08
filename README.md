@@ -1,4 +1,4 @@
-<h1 align="center">Pocket Flow - Python Project Template</h1>
+<h1 align="center">Pocket Flow - Cursor Project Template</h1>
 
 <p align="center">
   <img 
