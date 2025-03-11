@@ -6,9 +6,9 @@ layout: default
 title: "Build your LLM App"
 ---
 
-# LLM Application Development Playbook
+# LLM System Design Playbook
 
-> If you are an AI assistant involved in building LLM Apps, read this guide **VERY, VERY** carefully! This is the most important chapter in the entire document. Throughout development, you should always (1) start with a small and simple solution, (2) design at a high level (`docs/design.md`) before implementation, and (3) frequently ask humans for feedback and clarification.
+> If you are an AI assistant involved in building LLM Systems, read this guide **VERY, VERY** carefully! This is the most important chapter in the entire document. Throughout development, you should always (1) start with a small and simple solution, (2) design at a high level (`docs/design.md`) before implementation, and (3) frequently ask humans for feedback and clarification.
 {: .warning }
 
 ## System Design Steps
@@ -17,48 +17,54 @@ These system designs should be a collaboration between humans and AI assistants:
 
 | Stage                  | Human      | AI        | Comment                                                                 |
 |:-----------------------|:----------:|:---------:|:------------------------------------------------------------------------|
-| 1. Project Requirements | ★★★ High  | ★☆☆ Low   | Humans understand the requirements and context best.                    |
-| 2. Utility Functions   | ★★☆ Medium | ★★☆ Medium | The human is familiar with external APIs and integrations, and the AI assists with implementation. |
-| 3. Flow Design         | ★★☆ Medium | ★★☆ Medium | The human identifies complex and ambiguous parts, and the AI helps with redesign. |
-| 4. Data Schema         | ★☆☆ Low   | ★★★ High  | The AI assists in designing the data schema based on the flow.          |
-| 5. Implementation      | ★☆☆ Low   | ★★★ High  | The human identifies complex and ambiguous parts, and the AI helps with redesign. |
-| 6. Optimization        | ★★☆ Medium | ★★☆ Medium | The human reviews the code and evaluates the results, while the AI helps optimize. |
-| 7. Reliability         | ★☆☆ Low   | ★★★ High  | The AI helps write test cases and address corner cases.                 |
+| 1. Requirements | ★★★ High  | ★☆☆ Low   | Humans understand the requirements and context.                    |
+| 2. Flow          | ★★☆ Medium | ★★☆ Medium |  Humans specify the high-level design, and the AI fills in the details. |
+| 3. Utilities   | ★★☆ Medium | ★★☆ Medium | Humans provide available external APIs and integrations, and the AI helps with implementation. |
+| 4. Node          | ★☆☆ Low   | ★★★ High  | The AI helps design the node types and data handling based on the flow.          |
+| 5. Implementation      | ★☆☆ Low   | ★★★ High  |  The AI implements the flow based on the design. |
+| 6. Optimization        | ★★☆ Medium | ★★☆ Medium | Humans evaluate the results, and the AI helps optimize. |
+| 7. Reliability         | ★☆☆ Low   | ★★★ High  |  The AI writes test cases and addresses corner cases.     |
 
-1. **Project Requirements**: Clarify the requirements for your project, and evaluate whether an AI system is a good fit. An AI systems are:
+1. **Requirements**: Clarify the requirements for your project, and evaluate whether an AI system is a good fit. AI systems are:
     - suitable for routine tasks that require common sense (e.g., filling out forms, replying to emails).
     - suitable for creative tasks where all inputs are provided (e.g., building slides, writing SQL).
-    - **NOT** suitable for tasks that are highly ambiguous and require complex information (e.g., building a startup).
+    - **NOT** suitable for tasks that are highly ambiguous and require complex info (e.g., building a startup).
     - > **If a human can’t solve it, an LLM can’t automate it!** Before building an LLM system, thoroughly understand the problem by manually solving example inputs to develop intuition.  
       {: .best-practice }
 
-2. **Utility Functions**: AI system is the decision-maker and relies on *external utility functions* to:
 
-   <div align="center"><img src="https://github.com/the-pocket/PocketFlow/raw/main/assets/utility.png?raw=true" width="400"/></div>
+2. **Flow Design**: Outline at a high level, describe how your AI system orchestrates nodes.
+    - Identify applicable design patterns (e.g., [Map Reduce](./design_pattern/mapreduce.md), [Agent](./design_pattern/agent.md), [RAG](./design_pattern/rag.md)).
+    - For each node, provide a high-level purpose description.
+    - Draw the Flow in mermaid diagram.
 
-   - Read inputs (e.g., retrieving Slack messages, reading emails)
-   - Write outputs (e.g., generating reports, sending emails)
-   - Use external tools (e.g., calling LLMs, searching the web)
-   - In contrast, *LLM-based tasks* (e.g., summarizing text, analyzing sentiment) are **NOT** utility functions. Instead, they are *internal core functions* within the AI system—designed in step 3—and are built on top of the utility functions.
-   -  > **Start small!** Only include the most important ones to begin with!
-      {: .best-practice }
+3. **Utilities**: Based on the Flow Design, identify and implement necessary utility functions.
+    - Think of your AI system as the brain. It needs a body—these *external utility functions*—to interact with the real world:
+        <div align="center"><img src="https://github.com/the-pocket/PocketFlow/raw/main/assets/utility.png?raw=true" width="400"/></div>
 
-3. **Flow Design (Compute)**: Create a high-level outline for your application’s flow.
-    - Identify potential design patterns (e.g., Batch, Agent, RAG).
-    - For each node, specify:
-      - **Purpose**: The high-level compute logic
-      - **Type**: Regular node, Batch node, async node, or another type
-      - `exec`: The specific utility function to call (ideally, one function per node)
+        - Reading inputs (e.g., retrieving Slack messages, reading emails)
+        - Writing outputs (e.g., generating reports, sending emails)
+        - Using external tools (e.g., calling LLMs, searching the web)
 
-4. **Data Schema (Data)**: Plan how data will be stored and updated.
-   - For simple apps, use an in-memory dictionary.
-   - For more complex apps or when persistence is required, use a database.
-   - For each node, specify:
+    - NOTE: *LLM-based tasks* (e.g., summarizing text, analyzing sentiment) are **NOT** utility functions; rather, they are *core functions* internal in the AI system.
+    -  > **Start small!** Only include the most important ones to begin with!
+        {: .best-practice }
+
+
+4. **Node Design**: Plan how each node will read and write data, and use utility functions.
+   - Start with the shared data design
+      - For simple systems, use an in-memory dictionary.
+      - For more complex systems or when persistence is required, use a database.
+      - **Remove Data Redundancy**: Don’t store the same data. Use in-memory references or foreign keys.
+   - For each node, design its type and data handling:
+     - `type`: Decide between Regular, Batch, or Async
      - `prep`: How the node reads data
+     - `exec`: Which utility function this node uses
      - `post`: How the node writes data
 
-5. **Implementation**: Implement nodes and flows based on the design.
-   - Start with a simple, direct approach (avoid over-engineering and full-scale type checking or testing). Let it fail fast to identify weaknesses.
+5. **Implementation**: Implement the initial nodes and flows based on the design.
+   - **“Keep it simple, stupid!”** Avoid complex features and full-scale type checking.
+   - **FAIL FAST**! Avoid `try` logic so you can quickly identify any weak points in the system.
    - Add logging throughout the code to facilitate debugging.
 
 6. **Optimization**:
@@ -97,7 +103,7 @@ my_project/
 - **`utils/`**: Contains all utility functions.
   - It’s recommended to dedicate one Python file to each API call, for example `call_llm.py` or `search_web.py`.
   - Each file should also include a `main()` function to try that API call
-- **`flow.py`**: Implements the application’s flow, starting with node definitions followed by the overall structure.
+- **`flow.py`**: Implements the system's flow, starting with node definitions followed by the overall structure.
 - **`main.py`**: Serves as the project’s entry point.
 
 ================================================
@@ -1291,52 +1297,157 @@ nav_order: 4
 
 # RAG (Retrieval Augmented Generation)
 
-For certain LLM tasks like answering questions, providing context is essential.
-Use [vector search](../utility_function/tool.md) to find relevant context for LLM responses.
+For certain LLM tasks like answering questions, providing relevant context is essential. One common architecture is a **two-stage** RAG pipeline:
 
-### Example: Question Answering
+<div align="center">
+  <img src="https://github.com/the-pocket/PocketFlow/raw/main/assets/rag.png?raw=true" width="400"/>
+</div>
+
+1. **Offline stage**: Preprocess and index documents ("building the index").
+2. **Online stage**: Given a question, generate answers by retrieving the most relevant context.
+
+---
+## Stage 1: Offline Indexing
+
+We create three Nodes:
+1. `ChunkDocs` – [chunks](../utility_function/chunking.md) raw text.
+2. `EmbedDocs` – [embeds](../utility_function/embedding.md) each chunk.
+3. `StoreIndex` – stores embeddings into a [vector database](../utility_function/vector.md).
 
 ```python
-class PrepareEmbeddings(Node):
+class ChunkDocs(BatchNode):
     def prep(self, shared):
-        return shared["texts"]
+        # A list of file paths in shared["files"]. We process each file.
+        return shared["files"]
 
-    def exec(self, texts):
-        # Embed each text chunk
-        embs = [get_embedding(t) for t in texts]
-        return embs
+    def exec(self, filepath):
+        # read file content. In real usage, do error handling.
+        with open(filepath, "r", encoding="utf-8") as f:
+            text = f.read()
+        # chunk by 100 chars each
+        chunks = []
+        size = 100
+        for i in range(0, len(text), size):
+            chunks.append(text[i : i + size])
+        return chunks
+    
+    def post(self, shared, prep_res, exec_res_list):
+        # exec_res_list is a list of chunk-lists, one per file.
+        # flatten them all into a single list of chunks.
+        all_chunks = []
+        for chunk_list in exec_res_list:
+            all_chunks.extend(chunk_list)
+        shared["all_chunks"] = all_chunks
 
-    def post(self, shared, prep_res, exec_res):
-        shared["search_index"] = create_index(exec_res)
-        # no action string means "default"
-
-class AnswerQuestion(Node):
+class EmbedDocs(BatchNode):
     def prep(self, shared):
-        question = input("Enter question: ")
-        return question
+        return shared["all_chunks"]
+
+    def exec(self, chunk):
+        return get_embedding(chunk)
+
+    def post(self, shared, prep_res, exec_res_list):
+        # Store the list of embeddings.
+        shared["all_embeds"] = exec_res_list
+        print(f"Total embeddings: {len(exec_res_list)}")
+
+class StoreIndex(Node):
+    def prep(self, shared):
+        # We'll read all embeds from shared.
+        return shared["all_embeds"]
+
+    def exec(self, all_embeds):
+        # Create a vector index (faiss or other DB in real usage).
+        index = create_index(all_embeds)
+        return index
+
+    def post(self, shared, prep_res, index):
+        shared["index"] = index
+
+# Wire them in sequence
+chunk_node = ChunkDocs()
+embed_node = EmbedDocs()
+store_node = StoreIndex()
+
+chunk_node >> embed_node >> store_node
+
+OfflineFlow = Flow(start=chunk_node)
+```
+
+Usage example:
+
+```python
+shared = {
+    "files": ["doc1.txt", "doc2.txt"],  # any text files
+}
+OfflineFlow.run(shared)
+```
+
+---
+## Stage 2: Online Query & Answer
+
+We have 3 nodes:
+1. `EmbedQuery` – embeds the user’s question.
+2. `RetrieveDocs` – retrieves top chunk from the index.
+3. `GenerateAnswer` – calls the LLM with the question + chunk to produce the final answer.
+
+```python
+class EmbedQuery(Node):
+    def prep(self, shared):
+        return shared["question"]
 
     def exec(self, question):
-        q_emb = get_embedding(question)
-        idx, _ = search_index(shared["search_index"], q_emb, top_k=1)
-        best_id = idx[0][0]
-        relevant_text = shared["texts"][best_id]
-        prompt = f"Question: {question}\nContext: {relevant_text}\nAnswer:"
+        return get_embedding(question)
+
+    def post(self, shared, prep_res, q_emb):
+        shared["q_emb"] = q_emb
+
+class RetrieveDocs(Node):
+    def prep(self, shared):
+        # We'll need the query embedding, plus the offline index/chunks
+        return shared["q_emb"], shared["index"], shared["all_chunks"]
+
+    def exec(self, inputs):
+        q_emb, index, chunks = inputs
+        I, D = search_index(index, q_emb, top_k=1)
+        best_id = I[0][0]
+        relevant_chunk = chunks[best_id]
+        return relevant_chunk
+
+    def post(self, shared, prep_res, relevant_chunk):
+        shared["retrieved_chunk"] = relevant_chunk
+        print("Retrieved chunk:", relevant_chunk[:60], "...")
+
+class GenerateAnswer(Node):
+    def prep(self, shared):
+        return shared["question"], shared["retrieved_chunk"]
+
+    def exec(self, inputs):
+        question, chunk = inputs
+        prompt = f"Question: {question}\nContext: {chunk}\nAnswer:"
         return call_llm(prompt)
 
-    def post(self, shared, p, answer):
+    def post(self, shared, prep_res, answer):
+        shared["answer"] = answer
         print("Answer:", answer)
 
-############################################
-# Wire up the flow
-prep = PrepareEmbeddings()
-qa = AnswerQuestion()
-prep >> qa
+embed_qnode = EmbedQuery()
+retrieve_node = RetrieveDocs()
+generate_node = GenerateAnswer()
 
-flow = Flow(start=prep)
+embed_qnode >> retrieve_node >> generate_node
+OnlineFlow = Flow(start=embed_qnode)
+```
 
-# Example usage
-shared = {"texts": ["I love apples", "Cats are great", "The sky is blue"]}
-flow.run(shared)
+Usage example:
+
+```python
+# Suppose we already ran OfflineFlow and have:
+# shared["all_chunks"], shared["index"], etc.
+shared["question"] = "Why do people like cats?"
+
+OnlineFlow.run(shared)
+# final answer in shared["answer"]
 ```
 
 ================================================
