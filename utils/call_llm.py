@@ -1,5 +1,6 @@
 from openai import OpenAI
 
+# Learn more about calling the LLM: https://the-pocket.github.io/PocketFlow/utility_function/llm.html
 def call_llm(prompt):    
     client = OpenAI(api_key="YOUR_API_KEY_HERE")
     r = client.chat.completions.create(
