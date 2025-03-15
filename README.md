@@ -1,10 +1,13 @@
 <h1 align="center">Agentic Coding - Project Template</h1>
 
 <p align="center">
-  <img 
-    src="./assets/banner.png" width="600"
-  />
+  <a href="https://github.com/The-Pocket/PocketFlow" target="_blank">
+    <img 
+      src="./assets/banner.png" width="600"
+    />
+  </a>
 </p>
+
     
 This is a project template for Agentic Coding with [Pocket Flow](https://github.com/The-Pocket/PocketFlow), a 100-line LLM framework, and Cursor.
 
