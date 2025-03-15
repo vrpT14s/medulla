@@ -12,6 +12,6 @@ This is a project template for Agentic Coding with [Pocket Flow](https://github.
   
 - Want to learn how to build LLM projects with Agentic Coding?
   
-  - Check out the [ Agentic Coding](https://the-pocket.github.io/PocketFlow/guide.html)
+  - Check out the [Agentic Coding Guidance](https://the-pocket.github.io/PocketFlow/guide.html)
     
   - Check out the [YouTube Tutorial](https://www.youtube.com/@ZacharyLLM?sub_confirmation=1)
