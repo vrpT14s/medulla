@@ -3,19 +3,19 @@ File: docs/guide.md
 ================================================
 ---
 layout: default
-title: "Build your LLM App"
+title: "Agentic Coding"
 ---
 
-# LLM System Design Playbook
+# Agentic Coding: Humans Design, Agents code!
 
-> If you are an AI assistant involved in building LLM Systems, read this guide **VERY, VERY** carefully! This is the most important chapter in the entire document. Throughout development, you should always (1) start with a small and simple solution, (2) design at a high level (`docs/design.md`) before implementation, and (3) frequently ask humans for feedback and clarification.
+> If you are an AI agents involved in building LLM Systems, read this guide **VERY, VERY** carefully! This is the most important chapter in the entire document. Throughout development, you should always (1) start with a small and simple solution, (2) design at a high level (`docs/design.md`) before implementation, and (3) frequently ask humans for feedback and clarification.
 {: .warning }
 
-## System Design Steps
+## Agentic Coding Steps
 
-These system designs should be a collaboration between humans and AI assistants:
+Agentic Coding should be a collaboration between Human System Design and Agent Implementation:
 
-| Stage                  | Human      | AI        | Comment                                                                 |
+| Steps                  | Human      | AI        | Comment                                                                 |
 |:-----------------------|:----------:|:---------:|:------------------------------------------------------------------------|
 | 1. Requirements | ★★★ High  | ★☆☆ Low   | Humans understand the requirements and context.                    |
 | 2. Flow          | ★★☆ Medium | ★★☆ Medium |  Humans specify the high-level design, and the AI fills in the details. |
@@ -29,14 +29,18 @@ These system designs should be a collaboration between humans and AI assistants:
     - suitable for routine tasks that require common sense (e.g., filling out forms, replying to emails).
     - suitable for creative tasks where all inputs are provided (e.g., building slides, writing SQL).
     - **NOT** suitable for tasks that are highly ambiguous and require complex info (e.g., building a startup).
-    - > **If a human can’t solve it, an LLM can’t automate it!** Before building an LLM system, thoroughly understand the problem by manually solving example inputs to develop intuition.  
+    - > **If Humans can’t specify it, AI Agents can’t automate it!** Before building an LLM system, thoroughly understand the problem by manually solving example inputs to develop intuition.  
       {: .best-practice }
 
 
 2. **Flow Design**: Outline at a high level, describe how your AI system orchestrates nodes.
     - Identify applicable design patterns (e.g., [Map Reduce](./design_pattern/mapreduce.md), [Agent](./design_pattern/agent.md), [RAG](./design_pattern/rag.md)).
-    - For each node, provide a high-level purpose description.
-    - Draw the Flow in mermaid diagram.
+    - Outline the flow and draw it in a mermaid diagram. For example:
+      ```mermaid
+      flowchart LR
+          firstNode[First Node] --> secondNode[Second Node]
+          secondNode --> thirdNode[Third Node]
+      ```
 
 3. **Utilities**: Based on the Flow Design, identify and implement necessary utility functions.
     - Think of your AI system as the brain. It needs a body—these *external utility functions*—to interact with the real world:
@@ -45,29 +49,34 @@ These system designs should be a collaboration between humans and AI assistants:
         - Reading inputs (e.g., retrieving Slack messages, reading emails)
         - Writing outputs (e.g., generating reports, sending emails)
         - Using external tools (e.g., calling LLMs, searching the web)
-
-    - NOTE: *LLM-based tasks* (e.g., summarizing text, analyzing sentiment) are **NOT** utility functions; rather, they are *core functions* internal in the AI system.
-    -  > **Start small!** Only include the most important ones to begin with!
-        {: .best-practice }
-
+        - **NOTE**: *LLM-based tasks* (e.g., summarizing text, analyzing sentiment) are **NOT** utility functions; rather, they are *core functions* internal in the AI system.
+    - For each utility function, implement it and write a simple test.
+    - Document their input/output, as well as why they are necessary. For example:
+      - *Name*: Embedding (`utils/get_embedding.py`)
+      - *Input*: `str`
+      - *Output*: a vector of 3072 floats
+      - *Necessity:* Used by the second node to embed text
+    - > **Sometimes, design Utilies before Flow:**  For example, for an LLM project to automate a legacy system, the bottleneck will likely be the available interface to that system. Start by designing the hardest utilities for interfacing, and then build the flow around them.
+      {: .best-practice }
 
 4. **Node Design**: Plan how each node will read and write data, and use utility functions.
    - Start with the shared data design
       - For simple systems, use an in-memory dictionary.
       - For more complex systems or when persistence is required, use a database.
-      - **Remove Data Redundancy**: Don’t store the same data. Use in-memory references or foreign keys.
-   - For each node, design its type and data handling:
-     - `type`: Decide between Regular, Batch, or Async
-     - `prep`: How the node reads data
-     - `exec`: Which utility function this node uses
-     - `post`: How the node writes data
+      - **Don't Repeat Yourself"**: Use in-memory references or foreign keys.
+   - For each node, describe its type, how it reads and writes data, and which utility function it uses. Keep it specific but high-level without codes. For example:
+     - `type`: Regular (or Batch, or Async)
+     - `prep`: Read "text" from the shared store
+     - `exec`: Call the embedding utility function
+     - `post`: Write "embedding" to the shared store
 
 5. **Implementation**: Implement the initial nodes and flows based on the design.
+   - 🎉 If you’ve reached this step, humans have finished the design. Now *Agentic Coding* begins!
    - **“Keep it simple, stupid!”** Avoid complex features and full-scale type checking.
    - **FAIL FAST**! Avoid `try` logic so you can quickly identify any weak points in the system.
    - Add logging throughout the code to facilitate debugging.
 
-6. **Optimization**:
+7. **Optimization**:
    - **Use Intuition**: For a quick initial evaluation, human intuition is often a good start.
    - **Redesign Flow (Back to Step 3)**: Consider breaking down tasks further, introducing agentic decisions, or better managing input contexts.
    - If your flow design is already solid, move on to micro-optimizations:
@@ -79,7 +88,7 @@ These system designs should be a collaboration between humans and AI assistants:
      > <div align="center"><img src="https://github.com/the-pocket/PocketFlow/raw/main/assets/success.png?raw=true" width="400"/></div>
      {: .best-practice }
 
-7. **Reliability**  
+8. **Reliability**  
    - **Node Retries**: Add checks in the node `exec` to ensure outputs meet requirements, and consider increasing `max_retries` and `wait` times.
    - **Logging and Visualization**: Maintain logs of all attempts and visualize node results for easier debugging.
    - **Self-Evaluation**: Add a separate node (powered by an LLM) to review outputs when results are uncertain.
@@ -119,54 +128,65 @@ nav_order: 1
 
 A [100-line](https://github.com/the-pocket/PocketFlow/blob/main/pocketflow/__init__.py) minimalist LLM framework for *Agents, Task Decomposition, RAG, etc*.
 
-We model the LLM workflow as a **Graph + Shared Store**:
-- **Nodes** handle simple (LLM) tasks.
-- Nodes connect through **Actions** (labeled edges) for *Agents*.  
-- **Flows** orchestrate a directed graph of Nodes for *Task Decomposition*.
-- Nodes within Flows communicate through a **Shared Store**.
-- A Flow can be used as a Node (for **Nesting**).
-- **Batch** Nodes/Flows for data-intensive tasks.
-- **Async** Nodes/Flows allow waits for asynchronous tasks.
+- **Lightweight**: Just the core graph abstraction in 100 lines. ZERO dependencies, and vendor lock-in.
+- **Expressive**: Everything you love from larger frameworks—([Multi-](./design_pattern/multi_agent.html))[Agents](./design_pattern/agent.html), [Workflow](./design_pattern/workflow.html), [RAG](./design_pattern/rag.html), and more.  
+- **Agentic-Coding**: Intuitive enough for AI agents to help humans build complex LLM applications.
 
 <div align="center">
   <img src="https://github.com/the-pocket/PocketFlow/raw/main/assets/meme.jpg?raw=true" width="400"/>
 </div>
 
-> If you are an AI assistant reading this document, please read all the non-optional and non-advanced parts. If you are helping a human build an LLM app, please carefully review the [Development Playbook](./guide.md).
-{: .warning }
 
 ## Core Abstraction
 
-- [Node](./core_abstraction/node.md)
-- [Flow](./core_abstraction/flow.md)
-- [Communication](./core_abstraction/communication.md)
-- [Batch](./core_abstraction/batch.md)
-- [(Advanced) Async](./core_abstraction/async.md)
-- [(Advanced) Parallel](./core_abstraction/parallel.md)
+We model the LLM workflow as a **Graph + Shared Store**:
 
-## Utility Function
+- [Node](./core_abstraction/node.md) handles simple (LLM) tasks.
+- [Flow](./core_abstraction/flow.md) connects nodes through **Actions** (labeled edges).
+- [Shared Store](./core_abstraction/communication.md) enables communication between nodes within flows.
+- [Batch](./core_abstraction/batch.md) nodes/flows allow for data-intensive tasks.
+- [Async](./core_abstraction/async.md) nodes/flows allow waiting for asynchronous tasks.
+- [(Advanced) Parallel](./core_abstraction/parallel.md) nodes/flows handle I/O-bound tasks.
 
-- [LLM Wrapper](./utility_function/llm.md)
-- [Tool](./utility_function/tool.md)
-- [(Optional) Viz and Debug](./utility_function/viz.md)
-- Chunking
-
-> We do not provide built-in utility functions. Example implementations are provided as reference.
-{: .warning }
-
+<div align="center">
+  <img src="https://github.com/the-pocket/PocketFlow/raw/main/assets/abstraction.png" width="500"/>
+</div>
 
 ## Design Pattern
 
-- [Structured Output](./design_pattern/structure.md)
-- [Workflow](./design_pattern/workflow.md)
-- [Map Reduce](./design_pattern/mapreduce.md)
-- [RAG](./design_pattern/rag.md)
-- [Agent](./design_pattern/agent.md)
-- [(Optional) Chat Memory](./design_pattern/memory.md)
-- [(Advanced) Multi-Agents](./design_pattern/multi_agent.md)
-- Evaluation
+From there, it’s easy to implement popular design patterns:
 
-## [Develop your LLM Apps](./guide.md)
+- [Agent](./design_pattern/agent.md) autonomously makes decisions.
+- [Workflow](./design_pattern/workflow.md) chains multiple tasks into pipelines.
+- [RAG](./design_pattern/rag.md) integrates data retrieval with generation.
+- [Map Reduce](./design_pattern/mapreduce.md) splits data tasks into Map and Reduce steps.
+- [Structured Output](./design_pattern/structure.md) formats outputs consistently.
+- [(Advanced) Multi-Agents](./design_pattern/multi_agent.md) coordinate multiple agents.
+
+<div align="center">
+  <img src="https://github.com/the-pocket/PocketFlow/raw/main/assets/design.png" width="500"/>
+</div>
+
+## Utility Function
+
+We **do not** provide built-in utilities. Instead, we offer *examples*—please *implement your own*:
+
+- [LLM Wrapper](./utility_function/llm.md)
+- [Viz and Debug](./utility_function/viz.md)
+- [Web Search](./utility_function/websearch.md)
+- [Chunking](./utility_function/chunking.md)
+- [Embedding](./utility_function/embedding.md)
+- [Vector Databases](./utility_function/vector.md)
+- [Text-to-Speech](./utility_function/text_to_speech.md)
+
+**Why not built-in?**: I believe it's a *bad practice* for vendor-specific APIs in a general framework:
+- *API Volatility*: Frequent changes lead to heavy maintenance for hardcoded APIs.
+- *Flexibility*: You may want to switch vendors, use fine-tuned models, or run them locally.
+- *Optimizations*: Prompt caching, batching, and streaming are easier without vendor lock-in.
+
+## Ready to build your Apps? 
+
+Check out [Agentic Coding Guidance](./guide.md), the fastest way to develop LLM projects with Pocket Flow!
 
 ================================================
 File: docs/core_abstraction/async.md
@@ -338,6 +358,7 @@ inner_flow = FileBatchFlow(start=MapSummaries())
 outer_flow = DirectoryBatchFlow(start=inner_flow)
 ```
 
+
 ================================================
 File: docs/core_abstraction/communication.md
 ================================================
@@ -350,22 +371,22 @@ nav_order: 3
 
 # Communication
 
-Nodes and Flows **communicate** in two ways:
+Nodes and Flows **communicate** in 2 ways:
 
-1. **Shared Store (recommended)** 
+1. **Shared Store (for almost all the cases)** 
 
-   - A global data structure (often an in-mem dict) that all nodes can read and write by `prep()` and `post()`.  
+   - A global data structure (often an in-mem dict) that all nodes can read ( `prep()`) and write (`post()`).  
    - Great for data results, large content, or anything multiple nodes need.
    - You shall design the data structure and populate it ahead.
+     
+   - > **Separation of Concerns:** Use `Shared Store` for almost all cases to separate *Data Schema* from *Compute Logic*!  This approach is both flexible and easy to manage, resulting in more maintainable code. `Params` is more a syntax sugar for [Batch](./batch.md).
+     {: .best-practice }
 
 2. **Params (only for [Batch](./batch.md))** 
    - Each node has a local, ephemeral `params` dict passed in by the **parent Flow**, used as an identifier for tasks. Parameter keys and values shall be **immutable**.
    - Good for identifiers like filenames or numeric IDs, in Batch mode.
 
 If you know memory management, think of the **Shared Store** like a **heap** (shared by all function calls), and **Params** like a **stack** (assigned by the caller).
-
-> Use `Shared Store` for almost all cases. It's flexible and easy to manage. It separates *Data Schema* from *Compute Logic*, making the code easier to maintain. `Params` is more a syntax sugar for [Batch](./batch.md).
-{: .best-practice }
 
 ---
 
@@ -759,6 +780,7 @@ print("Action returned:", action_result)  # "default"
 print("Summary stored:", shared["summary"])
 ```
 
+
 ================================================
 File: docs/core_abstraction/parallel.md
 ================================================
@@ -826,22 +848,71 @@ File: docs/design_pattern/agent.md
 layout: default
 title: "Agent"
 parent: "Design Pattern"
-nav_order: 6
+nav_order: 1
 ---
 
 # Agent
 
-Agent is a powerful design pattern, where node can take dynamic actions based on the context it receives.
-To express an agent, create a Node (the agent) with [branching](../core_abstraction/flow.md) to other nodes (Actions).
+Agent is a powerful design pattern in which nodes can take dynamic actions based on the context.
 
-> The core of build **performant** and **reliable** agents boils down to:
-> 
-> 1. **Context Management:** Provide *clear, relevant context* so agents can understand the problem.E.g., Rather than dumping an entire chat history or entire files, use a [Workflow](./workflow.md) that filters out and includes only the most relevant information.
->
-> 2. **Action Space:** Define *a well-structured, unambiguous, and easy-to-use* set of actions. For instance, avoid creating overlapping actions like `read_databases` and `read_csvs`. Instead, unify data sources (e.g., move CSVs into a database) and design a single action. The action can be parameterized (e.g., string for search) or  programmable (e.g., SQL queries).
-{: .best-practice }
+<div align="center">
+  <img src="https://github.com/the-pocket/PocketFlow/raw/main/assets/agent.png?raw=true" width="350"/>
+</div>
 
-### Example: Search Agent
+## Implement Agent with Graph
+
+1. **Context and Action:** Implement nodes that supply context and perform actions.  
+2. **Branching:** Use branching to connect each action node to an agent node. Use action to allow the agent to direct the [flow](../core_abstraction/flow.md) between nodes—and potentially loop back for multi-step.
+3. **Agent Node:** Provide a prompt to decide action—for example:
+
+```python
+f"""
+### CONTEXT
+Task: {task_description}
+Previous Actions: {previous_actions}
+Current State: {current_state}
+
+### ACTION SPACE
+[1] search
+  Description: Use web search to get results
+  Parameters:
+    - query (str): What to search for
+
+[2] answer
+  Description: Conclude based on the results
+  Parameters:
+    - result (str): Final answer to provide
+
+### NEXT ACTION
+Decide the next action based on the current context and available action space.
+Return your response in the following format:
+
+```yaml
+thinking: |
+    <your step-by-step reasoning process>
+action: <action_name>
+parameters:
+    <parameter_name>: <parameter_value>
+```"""
+```
+
+The core of building **high-performance** and **reliable** agents boils down to:
+
+1. **Context Management:** Provide *relevant, minimal context.* For example, rather than including an entire chat history, retrieve the most relevant via [RAG](./rag.md). Even with larger context windows, LLMs still fall victim to ["lost in the middle"](https://arxiv.org/abs/2307.03172), overlooking mid-prompt content.
+
+2. **Action Space:** Provide *a well-structured and unambiguous* set of actions—avoiding overlap like separate `read_databases` or  `read_csvs`. Instead, import CSVs into the database.
+
+## Example Good Action Design
+
+- **Incremental:** Feed content in manageable chunks (500 lines or 1 page) instead of all at once.
+
+- **Overview-zoom-in:** First provide high-level structure (table of contents, summary), then allow drilling into details (raw texts).
+
+- **Parameterized/Programmable:** Instead of fixed actions, enable parameterized (columns to select) or programmable (SQL queries) actions, for example, to read CSV files.
+
+- **Backtracking:** Let the agent undo the last step instead of restarting entirely, preserving progress when encountering errors or dead ends.
+
+## Example: Search Agent
 
 This agent:
 1. Decides whether to search or answer
@@ -931,7 +1002,7 @@ File: docs/design_pattern/mapreduce.md
 layout: default
 title: "Map Reduce"
 parent: "Design Pattern"
-nav_order: 3
+nav_order: 4
 ---
 
 # Map Reduce
@@ -941,159 +1012,63 @@ MapReduce is a design pattern suitable when you have either:
 - Large output data (e.g., multiple forms to fill)
 
 and there is a logical way to break the task into smaller, ideally independent parts. 
+
+<div align="center">
+  <img src="https://github.com/the-pocket/PocketFlow/raw/main/assets/mapreduce.png?raw=true" width="400"/>
+</div>
+
 You first break down the task using [BatchNode](../core_abstraction/batch.md) in the map phase, followed by aggregation in the reduce phase.
 
 ### Example: Document Summarization
 
 ```python
-class MapSummaries(BatchNode):
-    def prep(self, shared): return [shared["text"][i:i+10000] for i in range(0, len(shared["text"]), 10000)]
-    def exec(self, chunk): return call_llm(f"Summarize this chunk: {chunk}")
-    def post(self, shared, prep_res, exec_res_list): shared["summaries"] = exec_res_list
-
-class ReduceSummaries(Node):
-    def prep(self, shared): return shared["summaries"]
-    def exec(self, summaries): return call_llm(f"Combine these summaries: {summaries}")
-    def post(self, shared, prep_res, exec_res): shared["final_summary"] = exec_res
-
-# Connect nodes
-map_node = MapSummaries()
-reduce_node = ReduceSummaries()
-map_node >> reduce_node
-
-# Create flow 
-summarize_flow = Flow(start=map_node)
-summarize_flow.run(shared)
-```
-
-================================================
-File: docs/design_pattern/memory.md
-================================================
----
-layout: default
-title: "Chat Memory"
-parent: "Design Pattern"
-nav_order: 5
----
-
-# Chat Memory
-
-Multi-turn conversations require memory management to maintain context while avoiding overwhelming the LLM.
-
-### 1. Naive Approach: Full History
-
-Sending the full chat history may overwhelm LLMs.
-
-```python
-class ChatNode(Node):
+class SummarizeAllFiles(BatchNode):
     def prep(self, shared):
-        if "history" not in shared:
-            shared["history"] = []
-        user_input = input("You: ")
-        return shared["history"], user_input
+        files_dict = shared["files"]  # e.g. 10 files
+        return list(files_dict.items())  # [("file1.txt", "aaa..."), ("file2.txt", "bbb..."), ...]
 
-    def exec(self, inputs):
-        history, user_input = inputs
-        messages = [{"role": "system", "content": "You are a helpful assistant"}]
-        for h in history:
-            messages.append(h)
-        messages.append({"role": "user", "content": user_input})
-        response = call_llm(messages)
-        return response
+    def exec(self, one_file):
+        filename, file_content = one_file
+        summary_text = call_llm(f"Summarize the following file:\n{file_content}")
+        return (filename, summary_text)
 
-    def post(self, shared, prep_res, exec_res):
-        shared["history"].append({"role": "user", "content": prep_res[1]})
-        shared["history"].append({"role": "assistant", "content": exec_res})
-        return "continue"
+    def post(self, shared, prep_res, exec_res_list):
+        shared["file_summaries"] = dict(exec_res_list)
 
-chat = ChatNode()
-chat - "continue" >> chat
-flow = Flow(start=chat)
-```
+class CombineSummaries(Node):
+    def prep(self, shared):
+        return shared["file_summaries"]
 
-### 2. Improved Memory Management
+    def exec(self, file_summaries):
+        # format as: "File1: summary\nFile2: summary...\n"
+        text_list = []
+        for fname, summ in file_summaries.items():
+            text_list.append(f"{fname} summary:\n{summ}\n")
+        big_text = "\n---\n".join(text_list)
 
-We can:
-1. Limit the chat history to the most recent 4.
-2. Use [vector search](./tool.md) to retrieve relevant exchanges beyond the last 4.
+        return call_llm(f"Combine these file summaries into one final summary:\n{big_text}")
 
-```python
-################################
-# Node A: Retrieve user input & relevant messages
-################################
-class ChatRetrieve(Node):
-    def prep(self, s):
-        s.setdefault("history", [])
-        s.setdefault("memory_index", None)
-        user_input = input("You: ")
-        return user_input
+    def post(self, shared, prep_res, final_summary):
+        shared["all_files_summary"] = final_summary
 
-    def exec(self, user_input):
-        emb = get_embedding(user_input)
-        relevant = []
-        if len(shared["history"]) > 8 and shared["memory_index"]:
-            idx, _ = search_index(shared["memory_index"], emb, top_k=2)
-            relevant = [shared["history"][i[0]] for i in idx]
-        return (user_input, relevant)
+batch_node = SummarizeAllFiles()
+combine_node = CombineSummaries()
+batch_node >> combine_node
 
-    def post(self, s, p, r):
-        user_input, relevant = r
-        s["user_input"] = user_input
-        s["relevant"] = relevant
-        return "continue"
+flow = Flow(start=batch_node)
 
-################################
-# Node B: Call LLM, update history + index
-################################
-class ChatReply(Node):
-    def prep(self, s):
-        user_input = s["user_input"]
-        recent = s["history"][-8:]
-        relevant = s.get("relevant", [])
-        return user_input, recent, relevant
-
-    def exec(self, inputs):
-        user_input, recent, relevant = inputs
-        msgs = [{"role":"system","content":"You are a helpful assistant."}]
-        if relevant:
-            msgs.append({"role":"system","content":f"Relevant: {relevant}"})
-        msgs.extend(recent)
-        msgs.append({"role":"user","content":user_input})
-        ans = call_llm(msgs)
-        return ans
-
-    def post(self, s, pre, ans):
-        user_input, _, _ = pre
-        s["history"].append({"role":"user","content":user_input})
-        s["history"].append({"role":"assistant","content":ans})
-        
-        # Manage memory index
-        if len(s["history"]) == 8:
-            embs = []
-            for i in range(0, 8, 2):
-                text = s["history"][i]["content"] + " " + s["history"][i+1]["content"]
-                embs.append(get_embedding(text))
-            s["memory_index"] = create_index(embs)
-        elif len(s["history"]) > 8:
-            text = s["history"][-2]["content"] + " " + s["history"][-1]["content"]
-            new_emb = np.array([get_embedding(text)]).astype('float32')
-            s["memory_index"].add(new_emb)
-
-        print(f"Assistant: {ans}")
-        return "continue"
-
-################################
-# Flow wiring
-################################
-retrieve = ChatRetrieve()
-reply = ChatReply()
-retrieve - "continue" >> reply
-reply - "continue" >> retrieve
-
-flow = Flow(start=retrieve)
-shared = {}
+shared = {
+    "files": {
+        "file1.txt": "Alice was beginning to get very tired of sitting by her sister...",
+        "file2.txt": "Some other interesting text ...",
+        # ...
+    }
+}
 flow.run(shared)
+print("Individual Summaries:", shared["file_summaries"])
+print("\nFinal Summary:\n", shared["all_files_summary"])
 ```
+
 
 ================================================
 File: docs/design_pattern/multi_agent.md
@@ -1102,7 +1077,7 @@ File: docs/design_pattern/multi_agent.md
 layout: default
 title: "(Advanced) Multi-Agents"
 parent: "Design Pattern"
-nav_order: 7
+nav_order: 6
 ---
 
 # (Advanced) Multi-Agents
@@ -1292,7 +1267,7 @@ File: docs/design_pattern/rag.md
 layout: default
 title: "RAG"
 parent: "Design Pattern"
-nav_order: 4
+nav_order: 3
 ---
 
 # RAG (Retrieval Augmented Generation)
@@ -1457,7 +1432,7 @@ File: docs/design_pattern/structure.md
 layout: default
 title: "Structured Output"
 parent: "Design Pattern"
-nav_order: 1
+nav_order: 5
 ---
 
 # Structured Output
@@ -1568,6 +1543,7 @@ dialogue: |
 - No need to escape interior quotes—just place the entire text under a block literal (`|`).
 - Newlines are naturally preserved without needing `\n`.
 
+
 ================================================
 File: docs/design_pattern/workflow.md
 ================================================
@@ -1580,7 +1556,11 @@ nav_order: 2
 
 # Workflow
 
-Many real-world tasks are too complex for one LLM call. The solution is to decompose them into a [chain](../core_abstraction/flow.md) of multiple Nodes.
+Many real-world tasks are too complex for one LLM call. The solution is to **Task Decomposition**: decompose them into a [chain](../core_abstraction/flow.md) of multiple Nodes.
+
+<div align="center">
+  <img src="https://github.com/the-pocket/PocketFlow/raw/main/assets/workflow.png?raw=true" width="400"/>
+</div>
 
 > - You don't want to make each task **too coarse**, because it may be *too complex for one LLM call*.
 > - You don't want to make each task **too granular**, because then *the LLM call doesn't have enough context* and results are *not consistent across nodes*.
@@ -1621,6 +1601,180 @@ writing_flow.run(shared)
 
 For *dynamic cases*, consider using [Agents](./agent.md).
 
+
+================================================
+File: docs/utility_function/chunking.md
+================================================
+---
+layout: default
+title: "Text Chunking"
+parent: "Utility Function"
+nav_order: 4
+---
+
+# Text Chunking
+
+We recommend some implementations of commonly used text chunking approaches.
+
+
+> Text Chunking is more a micro optimization, compared to the Flow Design.
+> 
+> It's recommended to start with the Naive Chunking and optimize later.
+{: .best-practice }
+
+---
+
+## Example Python Code Samples
+
+### 1. Naive (Fixed-Size) Chunking
+Splits text by a fixed number of words, ignoring sentence or semantic boundaries.
+
+```python
+def fixed_size_chunk(text, chunk_size=100):
+    chunks = []
+    for i in range(0, len(text), chunk_size):
+        chunks.append(text[i : i + chunk_size])
+    return chunks
+```
+
+However, sentences are often cut awkwardly, losing coherence.
+
+### 2. Sentence-Based Chunking
+
+```python
+import nltk
+
+def sentence_based_chunk(text, max_sentences=2):
+    sentences = nltk.sent_tokenize(text)
+    chunks = []
+    for i in range(0, len(sentences), max_sentences):
+        chunks.append(" ".join(sentences[i : i + max_sentences]))
+    return chunks
+```
+
+However, might not handle very long sentences or paragraphs well.
+
+### 3. Other Chunking
+
+- **Paragraph-Based**: Split text by paragraphs (e.g., newlines). Large paragraphs can create big chunks.
+- **Semantic**: Use embeddings or topic modeling to chunk by semantic boundaries.
+- **Agentic**: Use an LLM to decide chunk boundaries based on context or meaning.
+
+
+================================================
+File: docs/utility_function/embedding.md
+================================================
+---
+layout: default
+title: "Embedding"
+parent: "Utility Function"
+nav_order: 5
+---
+
+# Embedding
+
+Below you will find an overview table of various text embedding APIs, along with example Python code.
+
+>  Embedding is more a micro optimization, compared to the Flow Design.
+> 
+> It's recommended to start with the most convenient one and optimize later.
+{: .best-practice }
+
+
+| **API** | **Free Tier** | **Pricing Model** | **Docs** |
+| --- | --- | --- | --- |
+| **OpenAI** | ~$5 credit | ~$0.0001/1K tokens | [OpenAI Embeddings](https://platform.openai.com/docs/api-reference/embeddings) |
+| **Azure OpenAI** | $200 credit | Same as OpenAI (~$0.0001/1K tokens) | [Azure OpenAI Embeddings](https://learn.microsoft.com/azure/cognitive-services/openai/how-to/create-resource?tabs=portal) |
+| **Google Vertex AI** | $300 credit | ~$0.025 / million chars | [Vertex AI Embeddings](https://cloud.google.com/vertex-ai/docs/generative-ai/embeddings/get-text-embeddings) |
+| **AWS Bedrock** | No free tier, but AWS credits may apply | ~$0.00002/1K tokens (Titan V2) | [Amazon Bedrock](https://docs.aws.amazon.com/bedrock/) |
+| **Cohere** | Limited free tier | ~$0.0001/1K tokens | [Cohere Embeddings](https://docs.cohere.com/docs/cohere-embed) |
+| **Hugging Face** | ~$0.10 free compute monthly | Pay per second of compute | [HF Inference API](https://huggingface.co/docs/api-inference) |
+| **Jina** | 1M tokens free | Pay per token after | [Jina Embeddings](https://jina.ai/embeddings/) |
+
+## Example Python Code
+
+### 1. OpenAI
+```python
+import openai
+
+openai.api_key = "YOUR_API_KEY"
+resp = openai.Embedding.create(model="text-embedding-ada-002", input="Hello world")
+vec = resp["data"][0]["embedding"]
+print(vec)
+```
+
+### 2. Azure OpenAI
+```python
+import openai
+
+openai.api_type = "azure"
+openai.api_base = "https://YOUR_RESOURCE_NAME.openai.azure.com"
+openai.api_version = "2023-03-15-preview"
+openai.api_key = "YOUR_AZURE_API_KEY"
+
+resp = openai.Embedding.create(engine="ada-embedding", input="Hello world")
+vec = resp["data"][0]["embedding"]
+print(vec)
+```
+
+### 3. Google Vertex AI
+```python
+from vertexai.preview.language_models import TextEmbeddingModel
+import vertexai
+
+vertexai.init(project="YOUR_GCP_PROJECT_ID", location="us-central1")
+model = TextEmbeddingModel.from_pretrained("textembedding-gecko@001")
+
+emb = model.get_embeddings(["Hello world"])
+print(emb[0])
+```
+
+### 4. AWS Bedrock
+```python
+import boto3, json
+
+client = boto3.client("bedrock-runtime", region_name="us-east-1")
+body = {"inputText": "Hello world"}
+resp = client.invoke_model(modelId="amazon.titan-embed-text-v2:0", contentType="application/json", body=json.dumps(body))
+resp_body = json.loads(resp["body"].read())
+vec = resp_body["embedding"]
+print(vec)
+```
+
+### 5. Cohere
+```python
+import cohere
+
+co = cohere.Client("YOUR_API_KEY")
+resp = co.embed(texts=["Hello world"])
+vec = resp.embeddings[0]
+print(vec)
+```
+
+### 6. Hugging Face
+```python
+import requests
+
+API_URL = "https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2"
+HEADERS = {"Authorization": "Bearer YOUR_HF_TOKEN"}
+
+res = requests.post(API_URL, headers=HEADERS, json={"inputs": "Hello world"})
+vec = res.json()[0]
+print(vec)
+```
+
+### 7. Jina
+```python
+import requests
+
+url = "https://api.jina.ai/v2/embed"
+headers = {"Authorization": "Bearer YOUR_JINA_TOKEN"}
+payload = {"data": ["Hello world"], "model": "jina-embeddings-v3"}
+res = requests.post(url, headers=headers, json=payload)
+vec = res.json()["data"][0]["embedding"]
+print(vec)
+```
+
 ================================================
 File: docs/utility_function/llm.md
 ================================================
@@ -1631,26 +1785,79 @@ parent: "Utility Function"
 nav_order: 1
 ---
 
-# LLM Wrappers  
+# LLM Wrappers
 
-We **don't** provide built-in LLM wrappers. Instead, please implement your own, for example by asking an assistant like ChatGPT or Claude. If you ask ChatGPT to "implement a `call_llm` function that takes a prompt and returns the LLM response," you shall get something like:
+Check out libraries like [litellm](https://github.com/BerriAI/litellm). 
+Here, we provide some minimal example implementations:
 
-```python
-def call_llm(prompt):
-    from openai import OpenAI
-    client = OpenAI(api_key="YOUR_API_KEY_HERE")
-    r = client.chat.completions.create(
-        model="gpt-4o",
-        messages=[{"role": "user", "content": prompt}]
-    )
-    return r.choices[0].message.content
+1. OpenAI
+    ```python
+    def call_llm(prompt):
+        from openai import OpenAI
+        client = OpenAI(api_key="YOUR_API_KEY_HERE")
+        r = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return r.choices[0].message.content
 
-# Example usage
-call_llm("How are you?")
-```
+    # Example usage
+    call_llm("How are you?")
+    ```
+    > Store the API key in an environment variable like OPENAI_API_KEY for security.
+    {: .best-practice }
 
-> Store the API key in an environment variable like OPENAI_API_KEY for security.
-{: .note }
+2. Claude (Anthropic)
+    ```python
+    def call_llm(prompt):
+        from anthropic import Anthropic
+        client = Anthropic(api_key="YOUR_API_KEY_HERE")
+        response = client.messages.create(
+            model="claude-2",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=100
+        )
+        return response.content
+    ```
+
+3. Google (Generative AI Studio / PaLM API)
+    ```python
+    def call_llm(prompt):
+        import google.generativeai as genai
+        genai.configure(api_key="YOUR_API_KEY_HERE")
+        response = genai.generate_text(
+            model="models/text-bison-001",
+            prompt=prompt
+        )
+        return response.result
+    ```
+
+4. Azure (Azure OpenAI)
+    ```python
+    def call_llm(prompt):
+        from openai import AzureOpenAI
+        client = AzureOpenAI(
+            azure_endpoint="https://<YOUR_RESOURCE_NAME>.openai.azure.com/",
+            api_key="YOUR_API_KEY_HERE",
+            api_version="2023-05-15"
+        )
+        r = client.chat.completions.create(
+            model="<YOUR_DEPLOYMENT_NAME>",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return r.choices[0].message.content
+    ```
+
+5. Ollama (Local LLM)
+    ```python
+    def call_llm(prompt):
+        from ollama import chat
+        response = chat(
+            model="llama2",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return response.message.content
+    ```
 
 ## Improvements
 Feel free to enhance your `call_llm` function as needed. Here are examples:
@@ -1714,229 +1921,335 @@ def call_llm(prompt):
     return response
 ```
 
-## Why Not Provide Built-in LLM Wrappers?
-I believe it is a **bad practice** to provide LLM-specific implementations in a general framework:
-- **LLM APIs change frequently**. Hardcoding them makes maintenance a nightmare.
-- You may need **flexibility** to switch vendors, use fine-tuned models, or deploy local LLMs.
-- You may need **optimizations** like prompt caching, request batching, or response streaming.
-
 ================================================
-File: docs/utility_function/tool.md
+File: docs/utility_function/text_to_speech.md
 ================================================
 ---
 layout: default
-title: "Tool"
+title: "Text-to-Speech"
 parent: "Utility Function"
-nav_order: 2
+nav_order: 7
 ---
 
-# Tool
+# Text-to-Speech
 
-Similar to LLM wrappers, we **don't** provide built-in tools. Here, we recommend some *minimal* (and incomplete) implementations of commonly used tools. These examples can serve as a starting point for your own tooling.
+| **Service**          | **Free Tier**         | **Pricing Model**                                            | **Docs**                                                            |
+|----------------------|-----------------------|--------------------------------------------------------------|---------------------------------------------------------------------|
+| **Amazon Polly**     | 5M std + 1M neural   | ~$4 /M (std), ~$16 /M (neural) after free tier               | [Polly Docs](https://aws.amazon.com/polly/)                         |
+| **Google Cloud TTS** | 4M std + 1M WaveNet  | ~$4 /M (std), ~$16 /M (WaveNet) pay-as-you-go                | [Cloud TTS Docs](https://cloud.google.com/text-to-speech)           |
+| **Azure TTS**        | 500K neural ongoing  | ~$15 /M (neural), discount at higher volumes                 | [Azure TTS Docs](https://azure.microsoft.com/products/cognitive-services/text-to-speech/) |
+| **IBM Watson TTS**   | 10K chars Lite plan  | ~$0.02 /1K (i.e. ~$20 /M). Enterprise options available       | [IBM Watson Docs](https://www.ibm.com/cloud/watson-text-to-speech)   |
+| **ElevenLabs**       | 10K chars monthly    | From ~$5/mo (30K chars) up to $330/mo (2M chars). Enterprise  | [ElevenLabs Docs](https://elevenlabs.io)                            |
 
----
+## Example Python Code
 
-## 1. Embedding Calls
-
+### Amazon Polly
 ```python
-def get_embedding(text):
-    from openai import OpenAI
-    client = OpenAI(api_key="YOUR_API_KEY_HERE")
-    r = client.embeddings.create(
-        model="text-embedding-ada-002",
-        input=text
-    )
-    return r.data[0].embedding
+import boto3
 
-get_embedding("What's the meaning of life?")
+polly = boto3.client("polly", region_name="us-east-1",
+                     aws_access_key_id="YOUR_AWS_ACCESS_KEY_ID",
+                     aws_secret_access_key="YOUR_AWS_SECRET_ACCESS_KEY")
+
+resp = polly.synthesize_speech(
+    Text="Hello from Polly!",
+    OutputFormat="mp3",
+    VoiceId="Joanna"
+)
+
+with open("polly.mp3", "wb") as f:
+    f.write(resp["AudioStream"].read())
 ```
 
+### Google Cloud TTS
+```python
+from google.cloud import texttospeech
+
+client = texttospeech.TextToSpeechClient()
+input_text = texttospeech.SynthesisInput(text="Hello from Google Cloud TTS!")
+voice = texttospeech.VoiceSelectionParams(language_code="en-US")
+audio_cfg = texttospeech.AudioConfig(audio_encoding=texttospeech.AudioEncoding.MP3)
+
+resp = client.synthesize_speech(input=input_text, voice=voice, audio_config=audio_cfg)
+
+with open("gcloud_tts.mp3", "wb") as f:
+    f.write(resp.audio_content)
+```
+
+### Azure TTS
+```python
+import azure.cognitiveservices.speech as speechsdk
+
+speech_config = speechsdk.SpeechConfig(
+    subscription="AZURE_KEY", region="AZURE_REGION")
+audio_cfg = speechsdk.audio.AudioConfig(filename="azure_tts.wav")
+
+synthesizer = speechsdk.SpeechSynthesizer(
+    speech_config=speech_config,
+    audio_config=audio_cfg
+)
+
+synthesizer.speak_text_async("Hello from Azure TTS!").get()
+```
+
+### IBM Watson TTS
+```python
+from ibm_watson import TextToSpeechV1
+from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
+
+auth = IAMAuthenticator("IBM_API_KEY")
+service = TextToSpeechV1(authenticator=auth)
+service.set_service_url("IBM_SERVICE_URL")
+
+resp = service.synthesize(
+    "Hello from IBM Watson!",
+    voice="en-US_AllisonV3Voice",
+    accept="audio/mp3"
+).get_result()
+
+with open("ibm_tts.mp3", "wb") as f:
+    f.write(resp.content)
+```
+
+### ElevenLabs
+```python
+import requests
+
+api_key = "ELEVENLABS_KEY"
+voice_id = "ELEVENLABS_VOICE"
+url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
+headers = {"xi-api-key": api_key, "Content-Type": "application/json"}
+
+json_data = {
+    "text": "Hello from ElevenLabs!",
+    "voice_settings": {"stability": 0.75, "similarity_boost": 0.75}
+}
+
+resp = requests.post(url, headers=headers, json=json_data)
+
+with open("elevenlabs.mp3", "wb") as f:
+    f.write(resp.content)
+```
+
+================================================
+File: docs/utility_function/vector.md
+================================================
+---
+layout: default
+title: "Vector Databases"
+parent: "Utility Function"
+nav_order: 6
 ---
 
-## 2. Vector Database (Faiss)
+# Vector Databases
 
+
+Below is a  table of the popular vector search solutions:
+
+| **Tool** | **Free Tier** | **Pricing Model** | **Docs** |
+| --- | --- | --- | --- |
+| **FAISS** | N/A, self-host | Open-source | [Faiss.ai](https://faiss.ai) |
+| **Pinecone** | 2GB free | From $25/mo | [pinecone.io](https://pinecone.io) |
+| **Qdrant** | 1GB free cloud | Pay-as-you-go | [qdrant.tech](https://qdrant.tech) |
+| **Weaviate** | 14-day sandbox | From $25/mo | [weaviate.io](https://weaviate.io) |
+| **Milvus** | 5GB free cloud | PAYG or $99/mo dedicated | [milvus.io](https://milvus.io) |
+| **Chroma** | N/A, self-host | Free (Apache 2.0) | [trychroma.com](https://trychroma.com) |
+| **Redis** | 30MB free | From $5/mo | [redis.io](https://redis.io) |
+
+---
+## Example Python Code
+
+Below are basic usage snippets for each tool.
+
+### FAISS
 ```python
 import faiss
 import numpy as np
 
-def create_index(embeddings):
-    dim = len(embeddings[0])
-    index = faiss.IndexFlatL2(dim)
-    index.add(np.array(embeddings).astype('float32'))
-    return index
+# Dimensionality of embeddings
+d = 128
 
-def search_index(index, query_embedding, top_k=5):
-    D, I = index.search(
-        np.array([query_embedding]).astype('float32'), 
-        top_k
-    )
-    return I, D
+# Create a flat L2 index
+index = faiss.IndexFlatL2(d)
 
-index = create_index(embeddings)
-search_index(index, query_embedding)
+# Random vectors
+data = np.random.random((1000, d)).astype('float32')
+index.add(data)
+
+# Query
+query = np.random.random((1, d)).astype('float32')
+D, I = index.search(query, k=5)
+
+print("Distances:", D)
+print("Neighbors:", I)
 ```
 
----
-
-## 3. Local Database
-
+### Pinecone
 ```python
-import sqlite3
+import pinecone
 
-def execute_sql(query):
-    conn = sqlite3.connect("mydb.db")
-    cursor = conn.cursor()
-    cursor.execute(query)
-    result = cursor.fetchall()
-    conn.commit()
-    conn.close()
-    return result
+pinecone.init(api_key="YOUR_API_KEY", environment="YOUR_ENV")
+
+index_name = "my-index"
+
+# Create the index if it doesn't exist
+if index_name not in pinecone.list_indexes():
+    pinecone.create_index(name=index_name, dimension=128)
+
+# Connect
+index = pinecone.Index(index_name)
+
+# Upsert
+vectors = [
+    ("id1", [0.1]*128),
+    ("id2", [0.2]*128)
+]
+index.upsert(vectors)
+
+# Query
+response = index.query([[0.15]*128], top_k=3)
+print(response)
 ```
 
-> ⚠️ Beware of SQL injection risk
-{: .warning }
-
----
-
-## 4. Python Function Execution
-
+### Qdrant
 ```python
-def run_code(code_str):
-    env = {}
-    exec(code_str, env)
-    return env
+import qdrant_client
+from qdrant_client.models import Distance, VectorParams, PointStruct
 
-run_code("print('Hello, world!')")
+client = qdrant_client.QdrantClient(
+    url="https://YOUR-QDRANT-CLOUD-ENDPOINT",
+    api_key="YOUR_API_KEY"
+)
+
+collection = "my_collection"
+client.recreate_collection(
+    collection_name=collection,
+    vectors_config=VectorParams(size=128, distance=Distance.COSINE)
+)
+
+points = [
+    PointStruct(id=1, vector=[0.1]*128, payload={"type": "doc1"}),
+    PointStruct(id=2, vector=[0.2]*128, payload={"type": "doc2"}),
+]
+
+client.upsert(collection_name=collection, points=points)
+
+results = client.search(
+    collection_name=collection,
+    query_vector=[0.15]*128,
+    limit=2
+)
+print(results)
 ```
 
-> ⚠️ exec() is dangerous with untrusted input
-{: .warning }
-
-
----
-
-## 5. PDF Extraction
-
-If your PDFs are text-based, use PyMuPDF:
-
+### Weaviate
 ```python
-import fitz  # PyMuPDF
+import weaviate
 
-def extract_text(pdf_path):
-    doc = fitz.open(pdf_path)
-    text = ""
-    for page in doc:
-        text += page.get_text()
-    doc.close()
-    return text
+client = weaviate.Client("https://YOUR-WEAVIATE-CLOUD-ENDPOINT")
 
-extract_text("document.pdf")
+schema = {
+    "classes": [
+        {
+            "class": "Article",
+            "vectorizer": "none"
+        }
+    ]
+}
+client.schema.create(schema)
+
+obj = {
+    "title": "Hello World",
+    "content": "Weaviate vector search"
+}
+client.data_object.create(obj, "Article", vector=[0.1]*128)
+
+resp = (
+    client.query
+    .get("Article", ["title", "content"])
+    .with_near_vector({"vector": [0.15]*128})
+    .with_limit(3)
+    .do()
+)
+print(resp)
 ```
 
-For image-based PDFs (e.g., scanned), OCR is needed. A easy and fast option is using an LLM with vision capabilities:
-
+### Milvus
 ```python
-from openai import OpenAI
-import base64
+from pymilvus import connections, FieldSchema, CollectionSchema, DataType, Collection
+import numpy as np
 
-def call_llm_vision(prompt, image_data):
-    client = OpenAI(api_key="YOUR_API_KEY_HERE")
-    img_base64 = base64.b64encode(image_data).decode('utf-8')
-    
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        messages=[{
-            "role": "user",
-            "content": [
-                {"type": "text", "text": prompt},
-                {"type": "image_url", 
-                 "image_url": {"url": f"data:image/png;base64,{img_base64}"}}
-            ]
-        }]
-    )
-    
-    return response.choices[0].message.content
+connections.connect(alias="default", host="localhost", port="19530")
 
-pdf_document = fitz.open("document.pdf")
-page_num = 0
-page = pdf_document[page_num]
-pix = page.get_pixmap()
-img_data = pix.tobytes("png")
+fields = [
+    FieldSchema(name="id", dtype=DataType.INT64, is_primary=True),
+    FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=128)
+]
+schema = CollectionSchema(fields)
+collection = Collection("MyCollection", schema)
 
-call_llm_vision("Extract text from this image", img_data)
+emb = np.random.rand(10, 128).astype('float32')
+ids = list(range(10))
+collection.insert([ids, emb])
+
+index_params = {
+    "index_type": "IVF_FLAT",
+    "params": {"nlist": 128},
+    "metric_type": "L2"
+}
+collection.create_index("embedding", index_params)
+collection.load()
+
+query_emb = np.random.rand(1, 128).astype('float32')
+results = collection.search(query_emb, "embedding", param={"nprobe": 10}, limit=3)
+print(results)
 ```
 
----
-
-## 6. Web Crawling
-
+### Chroma
 ```python
-def crawl_web(url):
-    import requests
-    from bs4 import BeautifulSoup
-    html = requests.get(url).text
-    soup = BeautifulSoup(html, "html.parser")
-    return soup.title.string, soup.get_text()
+import chromadb
+from chromadb.config import Settings
+
+client = chromadb.Client(Settings(
+    chroma_db_impl="duckdb+parquet",
+    persist_directory="./chroma_data"
+))
+
+coll = client.create_collection("my_collection")
+
+vectors = [[0.1, 0.2, 0.3], [0.2, 0.2, 0.2]]
+metas = [{"doc": "text1"}, {"doc": "text2"}]
+ids = ["id1", "id2"]
+coll.add(embeddings=vectors, metadatas=metas, ids=ids)
+
+res = coll.query(query_embeddings=[[0.15, 0.25, 0.3]], n_results=2)
+print(res)
 ```
 
----
-
-## 7. Basic Search (SerpAPI example)
-
+### Redis
 ```python
-def search_google(query):
-    import requests
-    params = {
-        "engine": "google",
-        "q": query,
-        "api_key": "YOUR_API_KEY"
-    }
-    r = requests.get("https://serpapi.com/search", params=params)
-    return r.json()
-```
+import redis
+import struct
 
----
+r = redis.Redis(host="localhost", port=6379)
 
+# Create index
+r.execute_command(
+    "FT.CREATE", "my_idx", "ON", "HASH",
+    "SCHEMA", "embedding", "VECTOR", "FLAT", "6",
+    "TYPE", "FLOAT32", "DIM", "128",
+    "DISTANCE_METRIC", "L2"
+)
 
-## 8. Audio Transcription (OpenAI Whisper)
+# Insert
+vec = struct.pack('128f', *[0.1]*128)
+r.hset("doc1", mapping={"embedding": vec})
 
-```python
-def transcribe_audio(file_path):
-    import openai
-    audio_file = open(file_path, "rb")
-    transcript = openai.Audio.transcribe("whisper-1", audio_file)
-    return transcript["text"]
-```
-
----
-
-## 9. Text-to-Speech (TTS)
-
-```python
-def text_to_speech(text):
-    import pyttsx3
-    engine = pyttsx3.init()
-    engine.say(text)
-    engine.runAndWait()
-```
-
----
-
-## 10. Sending Email
-
-```python
-def send_email(to_address, subject, body, from_address, password):
-    import smtplib
-    from email.mime.text import MIMEText
-
-    msg = MIMEText(body)
-    msg["Subject"] = subject
-    msg["From"] = from_address
-    msg["To"] = to_address
-
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-        server.login(from_address, password)
-        server.sendmail(from_address, [to_address], msg.as_string())
+# Search
+qvec = struct.pack('128f', *[0.15]*128)
+q = "*=>[KNN 3 @embedding $BLOB AS dist]"
+res = r.ft("my_idx").search(q, query_params={"BLOB": qvec})
+print(res.docs)
 ```
 
 ================================================
@@ -1946,7 +2259,7 @@ File: docs/utility_function/viz.md
 layout: default
 title: "Viz and Debug"
 parent: "Utility Function"
-nav_order: 3
+nav_order: 2
 ---
 
 # Visualization and Debugging
@@ -2082,3 +2395,172 @@ data_science_flow.run({})
 ```
 
 The output would be: `Call stack: ['EvaluateModelNode', 'ModelFlow', 'DataScienceFlow']`
+
+
+================================================
+File: docs/utility_function/websearch.md
+================================================
+---
+layout: default
+title: "Web Search"
+parent: "Utility Function"
+nav_order: 3
+---
+# Web Search
+
+We recommend some implementations of commonly used web search tools.
+
+| **API**                         | **Free Tier**                                | **Pricing Model**                                              | **Docs**                                                  |
+|---------------------------------|-----------------------------------------------|-----------------------------------------------------------------|------------------------------------------------------------------------|
+| **Google Custom Search JSON API** | 100 queries/day free       | $5 per 1000 queries.           | [Link](https://developers.google.com/custom-search/v1/overview)        |
+| **Bing Web Search API**         | 1,000 queries/month               | $15–$25 per 1,000 queries. | [Link](https://azure.microsoft.com/en-us/services/cognitive-services/bing-web-search-api/) |
+| **DuckDuckGo Instant Answer**   | Completely free (Instant Answers only, **no URLs**) | No paid plans; usage unlimited, but data is limited             | [Link](https://duckduckgo.com/api)                                     |
+| **Brave Search API**         | 2,000 queries/month free | $3 per 1k queries for Base, $5 per 1k for Pro | [Link](https://brave.com/search/api/)                                  |
+| **SerpApi**              | 100 searches/month free            | Start at $75/month for 5,000 searches| [Link](https://serpapi.com/)                                             |
+| **RapidAPI**           | Many  options    | Many  options             | [Link](https://rapidapi.com/search?term=search&sortBy=ByRelevance)      |
+
+## Example Python Code
+
+### 1. Google Custom Search JSON API
+```python
+import requests
+
+API_KEY = "YOUR_API_KEY"
+CX_ID = "YOUR_CX_ID"
+query = "example"
+
+url = "https://www.googleapis.com/customsearch/v1"
+params = {
+    "key": API_KEY,
+    "cx": CX_ID,
+    "q": query
+}
+
+response = requests.get(url, params=params)
+results = response.json()
+print(results)
+```
+
+### 2. Bing Web Search API
+```python
+import requests
+
+SUBSCRIPTION_KEY = "YOUR_BING_API_KEY"
+query = "example"
+
+url = "https://api.bing.microsoft.com/v7.0/search"
+headers = {"Ocp-Apim-Subscription-Key": SUBSCRIPTION_KEY}
+params = {"q": query}
+
+response = requests.get(url, headers=headers, params=params)
+results = response.json()
+print(results)
+```
+
+### 3. DuckDuckGo Instant Answer
+```python
+import requests
+
+query = "example"
+url = "https://api.duckduckgo.com/"
+params = {
+    "q": query,
+    "format": "json"
+}
+
+response = requests.get(url, params=params)
+results = response.json()
+print(results)
+```
+
+### 4. Brave Search API
+```python
+import requests
+
+SUBSCRIPTION_TOKEN = "YOUR_BRAVE_API_TOKEN"
+query = "example"
+
+url = "https://api.search.brave.com/res/v1/web/search"
+headers = {
+    "X-Subscription-Token": SUBSCRIPTION_TOKEN
+}
+params = {
+    "q": query
+}
+
+response = requests.get(url, headers=headers, params=params)
+results = response.json()
+print(results)
+```
+
+### 5. SerpApi
+```python
+import requests
+
+API_KEY = "YOUR_SERPAPI_KEY"
+query = "example"
+
+url = "https://serpapi.com/search"
+params = {
+    "engine": "google",
+    "q": query,
+    "api_key": API_KEY
+}
+
+response = requests.get(url, params=params)
+results = response.json()
+print(results)
+```
+
+================================================
+File: docs/_config.yml
+================================================
+# Basic site settings
+title: Pocket Flow
+tagline: A 100-line LLM framework
+description: Minimalist LLM Framework in 100 Lines, Enabling LLMs to Program Themselves
+
+# Theme settings
+remote_theme: just-the-docs/just-the-docs
+
+# Navigation
+nav_sort: case_sensitive
+
+# Aux links (shown in upper right)
+aux_links:
+  "View on GitHub":
+    - "//github.com/the-pocket/PocketFlow"
+    
+# Color scheme
+color_scheme: light
+
+# Author settings
+author:
+    name: Zachary Huang
+    url: https://www.columbia.edu/~zh2408/
+    twitter: ZacharyHuang12
+
+# Mermaid settings
+mermaid:
+  version: "9.1.3"  # Pick the version you want
+  # Default configuration
+  config: |
+    directionLR
+
+# Callouts settings
+callouts:
+  warning:
+    title: Warning
+    color: red
+  note:
+    title: Note
+    color: blue
+  best-practice:
+    title: Best Practice
+    color: green
+  
+# The custom navigation
+nav:
+  - Home: index.md       # Link to your main docs index
+  - GitHub: "https://github.com/the-pocket/PocketFlow"
+  - Discord: "https://discord.gg/hUHHE9Sa6T"
