@@ -140,6 +140,7 @@ Agentic Coding should be a collaboration between Human System Design and Agent I
 ```
 my_project/
 ├── main.py
+├── nodes.py
 ├── flow.py
 ├── utils/
 │   ├── __init__.py
@@ -154,13 +155,12 @@ my_project/
 - **`utils/`**: Contains all utility functions.
   - It's recommended to dedicate one Python file to each API call, for example `call_llm.py` or `search_web.py`.
   - Each file should also include a `main()` function to try that API call
-- **`flow.py`**: Implements the system's flow, starting with node definitions followed by the overall structure.
+- **`nodes.py`**: Contains all the node definitions.
   ```python
-  # flow.py
-  from pocketflow import Node, Flow
+  # nodes.py
+  from pocketflow import Node
   from utils.call_llm import call_llm
 
-  # Example with two nodes in a flow
   class GetQuestionNode(Node):
       def exec(self, _):
           # Get question directly from user input
@@ -184,21 +184,29 @@ my_project/
       def post(self, shared, prep_res, exec_res):
           # Store the answer in shared
           shared["answer"] = exec_res
+  ```
+- **`flow.py`**: Implements functions that create flows by importing node definitions and connecting them.
+  ```python
+  # flow.py
+  from pocketflow import Flow
+  from nodes import GetQuestionNode, AnswerNode
 
-  # Create nodes
-  get_question_node = GetQuestionNode()
-  answer_node = AnswerNode()
-  
-  # Connect nodes in sequence
-  get_question_node >> answer_node
-  
-  # Create flow starting with input node
-  qa_flow = Flow(start=get_question_node)
+  def create_qa_flow():
+      """Create and return a question-answering flow."""
+      # Create nodes
+      get_question_node = GetQuestionNode()
+      answer_node = AnswerNode()
+      
+      # Connect nodes in sequence
+      get_question_node >> answer_node
+      
+      # Create flow starting with input node
+      return Flow(start=get_question_node)
   ```
 - **`main.py`**: Serves as the project's entry point.
   ```python
   # main.py
-  from flow import qa_flow
+  from flow import create_qa_flow
 
   # Example main function
   # Please replace this with your own main function
@@ -208,6 +216,8 @@ my_project/
           "answer": None     # Will be populated by AnswerNode
       }
 
+      # Create the flow and run it
+      qa_flow = create_qa_flow()
       qa_flow.run(shared)
       print(f"Question: {shared['question']}")
       print(f"Answer: {shared['answer']}")

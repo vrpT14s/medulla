@@ -1,19 +1,14 @@
-from pocketflow import Node, Flow
-from utils.call_llm import call_llm
+from pocketflow import Flow
+from nodes import GetQuestionNode, AnswerNode
 
-# An example node and flow
-# Please replace this with your own node and flow
-class AnswerNode(Node):
-    def prep(self, shared):
-        # Read question from shared
-        return shared["question"]
+def create_qa_flow():
+    """Create and return a question-answering flow."""
+    # Create nodes
+    get_question_node = GetQuestionNode()
+    answer_node = AnswerNode()
     
-    def exec(self, question):
-        return call_llm(question)
+    # Connect nodes in sequence
+    get_question_node >> answer_node
     
-    def post(self, shared, prep_res, exec_res):
-        # Store the answer in shared
-        shared["answer"] = exec_res
-
-answer_node = AnswerNode()
-qa_flow = Flow(start=answer_node)
+    # Create flow starting with input node
+    return Flow(start=get_question_node)
