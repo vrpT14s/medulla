@@ -1,4 +1,4 @@
-from flow import qa_flow
+from flow import create_qa_flow
 
 # Example main function
 # Please replace this with your own main function
@@ -8,6 +8,7 @@ def main():
         "answer": None
     }
 
+    qa_flow = create_qa_flow()
     qa_flow.run(shared)
     print("Question:", shared["question"])
     print("Answer:", shared["answer"])
