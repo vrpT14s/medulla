@@ -12,3 +12,5 @@ def create_qa_flow():
     
     # Create flow starting with input node
     return Flow(start=get_question_node)
+
+qa_flow = create_qa_flow()

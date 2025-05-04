@@ -1,9 +1,9 @@
-<h1 align="center">Agentic Coding - Project Template</h1>
+<h1 align="center">Pocket Flow Project Template: Agentic Coding</h1>
 
 <p align="center">
   <a href="https://github.com/The-Pocket/PocketFlow" target="_blank">
     <img 
-      src="./assets/banner.png" width="600"
+      src="./assets/banner.png" width="800"
     />
   </a>
 </p>
