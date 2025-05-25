@@ -50,11 +50,11 @@ flowchart TD
 
 ## Node Design
 
-### Shared Memory
+### Shared Store
 
 > Notes for AI: Try to minimize data redundancy
 
-The shared memory structure is organized as follows:
+The shared store structure is organized as follows:
 
 ```python
 shared = {
