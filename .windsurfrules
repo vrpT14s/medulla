@@ -5,7 +5,7 @@ title: "Agentic Coding"
 
 # Agentic Coding: Humans Design, Agents code!
 
-> If you are an AI agents involved in building LLM Systems, read this guide **VERY, VERY** carefully! This is the most important chapter in the entire document. Throughout development, you should always (1) start with a small and simple solution, (2) design at a high level (`docs/design.md`) before implementation, and (3) frequently ask humans for feedback and clarification.
+> If you are an AI agent involved in building LLM Systems, read this guide **VERY, VERY** carefully! This is the most important chapter in the entire document. Throughout development, you should always (1) start with a small and simple solution, (2) design at a high level (`docs/design.md`) before implementation, and (3) frequently ask humans for feedback and clarification.
 {: .warning }
 
 ## Agentic Coding Steps
@@ -17,10 +17,11 @@ Agentic Coding should be a collaboration between Human System Design and Agent I
 | 1. Requirements | ★★★ High  | ★☆☆ Low   | Humans understand the requirements and context.                    |
 | 2. Flow          | ★★☆ Medium | ★★☆ Medium |  Humans specify the high-level design, and the AI fills in the details. |
 | 3. Utilities   | ★★☆ Medium | ★★☆ Medium | Humans provide available external APIs and integrations, and the AI helps with implementation. |
-| 4. Node          | ★☆☆ Low   | ★★★ High  | The AI helps design the node types and data handling based on the flow.          |
-| 5. Implementation      | ★☆☆ Low   | ★★★ High  |  The AI implements the flow based on the design. |
-| 6. Optimization        | ★★☆ Medium | ★★☆ Medium | Humans evaluate the results, and the AI helps optimize. |
-| 7. Reliability         | ★☆☆ Low   | ★★★ High  |  The AI writes test cases and addresses corner cases.     |
+| 4. Data          | ★☆☆ Low    | ★★★ High   | AI designs the data schema, and humans verify.                            |
+| 5. Node          | ★☆☆ Low   | ★★★ High  | The AI helps design the node based on the flow.          |
+| 6. Implementation      | ★☆☆ Low   | ★★★ High  |  The AI implements the flow based on the design. |
+| 7. Optimization        | ★★☆ Medium | ★★☆ Medium | Humans evaluate the results, and the AI helps optimize. |
+| 8. Reliability         | ★☆☆ Low   | ★★★ High  |  The AI writes test cases and addresses corner cases.     |
 
 1. **Requirements**: Clarify the requirements for your project, and evaluate whether an AI system is a good fit. 
     - Understand AI systems' strengths and limitations:
@@ -56,7 +57,7 @@ Agentic Coding should be a collaboration between Human System Design and Agent I
 
 3. **Utilities**: Based on the Flow Design, identify and implement necessary utility functions.
     - Think of your AI system as the brain. It needs a body—these *external utility functions*—to interact with the real world:
-        <div align="center"><img src="https://github.com/the-pocket/PocketFlow/raw/main/assets/utility.png?raw=true" width="400"/></div>
+        <div align="center"><img src="https://github.com/the-pocket/.github/raw/main/assets/utility.png?raw=true" width="400"/></div>
 
         - Reading inputs (e.g., retrieving Slack messages, reading emails)
         - Writing outputs (e.g., generating reports, sending emails)
@@ -85,11 +86,13 @@ Agentic Coding should be a collaboration between Human System Design and Agent I
           prompt = "What is the meaning of life?"
           print(call_llm(prompt))
       ```
-    - > **Sometimes, design Utilies before Flow:**  For example, for an LLM project to automate a legacy system, the bottleneck will likely be the available interface to that system. Start by designing the hardest utilities for interfacing, and then build the flow around them.
+    - > **Sometimes, design Utilities before Flow:**  For example, for an LLM project to automate a legacy system, the bottleneck will likely be the available interface to that system. Start by designing the hardest utilities for interfacing, and then build the flow around them.
       {: .best-practice }
+    - > **Avoid Exception Handling in Utilities**: If a utility function is called from a Node's `exec()` method, avoid using `try...except` blocks within the utility. Let the Node's built-in retry mechanism handle failures.
+      {: .warning }
 
-4. **Node Design**: Plan how each node will read and write data, and use utility functions.
-   - One core design principle for PocketFlow is to use a [shared store](./core_abstraction/communication.md), so start with a shared store design:
+4. **Data Design**: Design the shared store that nodes will use to communicate.
+   - One core design principle for PocketFlow is to use a well-designed [shared store](./core_abstraction/communication.md)—a data contract that all nodes agree upon to retrieve and store data.
       - For simple systems, use an in-memory dictionary.
       - For more complex systems or when persistence is required, use a database.
       - **Don't Repeat Yourself**: Use in-memory references or foreign keys.
@@ -106,16 +109,18 @@ Agentic Coding should be a collaboration between Human System Design and Agent I
             "results": {}                   # Empty dict to store outputs
         }
         ```
+
+5. **Node Design**: Plan how each node will read and write data, and use utility functions.
    - For each [Node](./core_abstraction/node.md), describe its type, how it reads and writes data, and which utility function it uses. Keep it specific but high-level without codes. For example:
      - `type`: Regular (or Batch, or Async)
      - `prep`: Read "text" from the shared store
-     - `exec`: Call the embedding utility function
+     - `exec`: Call the embedding utility function. **Avoid exception handling here**; let the Node's retry mechanism manage failures.
      - `post`: Write "embedding" to the shared store
 
-5. **Implementation**: Implement the initial nodes and flows based on the design.
+6. **Implementation**: Implement the initial nodes and flows based on the design.
    - 🎉 If you've reached this step, humans have finished the design. Now *Agentic Coding* begins!
    - **"Keep it simple, stupid!"** Avoid complex features and full-scale type checking.
-   - **FAIL FAST**! Avoid `try` logic so you can quickly identify any weak points in the system.
+   - **FAIL FAST**! Leverage the built-in [Node](./core_abstraction/node.md) retry and fallback mechanisms to handle failures gracefully. This helps you quickly identify weak points in the system.
    - Add logging throughout the code to facilitate debugging.
 
 7. **Optimization**:
@@ -127,7 +132,7 @@ Agentic Coding should be a collaboration between Human System Design and Agent I
 
    - > **You'll likely iterate a lot!** Expect to repeat Steps 3–6 hundreds of times.
      >
-     > <div align="center"><img src="https://github.com/the-pocket/PocketFlow/raw/main/assets/success.png?raw=true" width="400"/></div>
+     > <div align="center"><img src="https://github.com/the-pocket/.github/raw/main/assets/success.png?raw=true" width="400"/></div>
      {: .best-practice }
 
 8. **Reliability**  
@@ -244,7 +249,7 @@ A [100-line](https://github.com/the-pocket/PocketFlow/blob/main/pocketflow/__ini
 - **Agentic-Coding**: Intuitive enough for AI agents to help humans build complex LLM applications.
 
 <div align="center">
-  <img src="https://github.com/the-pocket/PocketFlow/raw/main/assets/meme.jpg?raw=true" width="400"/>
+  <img src="https://github.com/the-pocket/.github/raw/main/assets/meme.jpg?raw=true" width="400"/>
 </div>
 
 ## Core Abstraction
@@ -259,7 +264,7 @@ We model the LLM workflow as a **Graph + Shared Store**:
 - [(Advanced) Parallel](./core_abstraction/parallel.md) nodes/flows handle I/O-bound tasks.
 
 <div align="center">
-  <img src="https://github.com/the-pocket/PocketFlow/raw/main/assets/abstraction.png" width="500"/>
+  <img src="https://github.com/the-pocket/.github/raw/main/assets/abstraction.png" width="500"/>
 </div>
 
 ## Design Pattern
@@ -274,7 +279,7 @@ From there, it’s easy to implement popular design patterns:
 - [(Advanced) Multi-Agents](./design_pattern/multi_agent.md) coordinate multiple agents.
 
 <div align="center">
-  <img src="https://github.com/the-pocket/PocketFlow/raw/main/assets/design.png" width="500"/>
+  <img src="https://github.com/the-pocket/.github/raw/main/assets/design.png" width="500"/>
 </div>
 
 ## Utility Function
@@ -794,7 +799,7 @@ nav_order: 1
 A **Node** is the smallest building block. Each Node has 3 steps `prep->exec->post`:
 
 <div align="center">
-  <img src="https://github.com/the-pocket/PocketFlow/raw/main/assets/node.png?raw=true" width="400"/>
+  <img src="https://github.com/the-pocket/.github/raw/main/assets/node.png?raw=true" width="400"/>
 </div>
 
 1. `prep(shared)`
@@ -807,6 +812,7 @@ A **Node** is the smallest building block. Each Node has 3 steps `prep->exec->po
    - Examples: *(mostly) LLM calls, remote APIs, tool use*.
    - ⚠️ This shall be only for compute and **NOT** access `shared`.
    - ⚠️ If retries enabled, ensure idempotent implementation.
+   - ⚠️ Defer exception handling to the Node's built-in retry mechanism.
    - Return `exec_res`, which is passed to `post()`.
 
 3. `post(shared, prep_res, exec_res)`
@@ -888,7 +894,6 @@ print("Action returned:", action_result)  # "default"
 print("Summary stored:", shared["summary"])
 ```
 
-
 ================================================
 File: docs/core_abstraction/parallel.md
 ================================================
@@ -964,7 +969,7 @@ nav_order: 1
 Agent is a powerful design pattern in which nodes can take dynamic actions based on the context.
 
 <div align="center">
-  <img src="https://github.com/the-pocket/PocketFlow/raw/main/assets/agent.png?raw=true" width="350"/>
+  <img src="https://github.com/the-pocket/.github/raw/main/assets/agent.png?raw=true" width="350"/>
 </div>
 
 ## Implement Agent with Graph
@@ -1122,7 +1127,7 @@ MapReduce is a design pattern suitable when you have either:
 and there is a logical way to break the task into smaller, ideally independent parts. 
 
 <div align="center">
-  <img src="https://github.com/the-pocket/PocketFlow/raw/main/assets/mapreduce.png?raw=true" width="400"/>
+  <img src="https://github.com/the-pocket/.github/raw/main/assets/mapreduce.png?raw=true" width="400"/>
 </div>
 
 You first break down the task using [BatchNode](../core_abstraction/batch.md) in the map phase, followed by aggregation in the reduce phase.
@@ -1192,7 +1197,7 @@ nav_order: 3
 For certain LLM tasks like answering questions, providing relevant context is essential. One common architecture is a **two-stage** RAG pipeline:
 
 <div align="center">
-  <img src="https://github.com/the-pocket/PocketFlow/raw/main/assets/rag.png?raw=true" width="400"/>
+  <img src="https://github.com/the-pocket/.github/raw/main/assets/rag.png?raw=true" width="400"/>
 </div>
 
 1. **Offline stage**: Preprocess and index documents ("building the index").
@@ -1475,7 +1480,7 @@ nav_order: 2
 Many real-world tasks are too complex for one LLM call. The solution is to **Task Decomposition**: decompose them into a [chain](../core_abstraction/flow.md) of multiple Nodes.
 
 <div align="center">
-  <img src="https://github.com/the-pocket/PocketFlow/raw/main/assets/workflow.png?raw=true" width="400"/>
+  <img src="https://github.com/the-pocket/.github/raw/main/assets/workflow.png?raw=true" width="400"/>
 </div>
 
 > - You don't want to make each task **too coarse**, because it may be *too complex for one LLM call*.
