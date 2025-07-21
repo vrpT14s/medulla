@@ -1,79 +1,142 @@
-# Design Doc: Your Project Name
 
-> Please DON'T remove notes for AI
+## Darshan Log I/O Inefficiency Agent: Iterative ReAct-Style Design
 
-## Requirements
+### 1. Requirements
 
-> Notes for AI: Keep it simple and clear.
-> If the requirements are abstract, write concrete user stories
+**Goal:**
+Help HPC application developers identify and understand I/O inefficiencies in their applications by analyzing Darshan log files. The agent should:
+- Detect common and context-specific I/O inefficiency “symptoms” (e.g., small transfer sizes, excessive metadata ops).
+- Explain each detected issue with context and actionable advice.
+- Visualize problematic patterns for the user.
+
+**User:**
+HPC application developers and performance engineers.
+
+**Problem:**
+Darshan logs are rich but complex. Users need actionable, LLM-powered insights, not just raw stats.
 
 
-## Flow Design
+### 2. Flow Design (Iterative ReAct Loop)
 
-> Notes for AI:
-> 1. Consider the design patterns of agent, map-reduce, rag, and workflow. Apply them if they fit.
-> 2. Present a concise, high-level description of the workflow.
+**High-Level Flow:**
 
-### Applicable Design Pattern:
+1. **Input:** User provides a Darshan log file.
+2. **Schema Extraction:** Parse the log and load it into a SQLite DB (with a known schema).
+3. **Iterative Loop:**
+    - a. **LLM proposes a set of symptoms** (title, description, SQL query) based on schema and previous findings.
+    - b. **System runs the SQL measurements** and collects results.
+    - c. **LLM observes the results** and reasons about them:
+        - May propose new, refined, or follow-up symptoms/queries.
+        - May decide the investigation is complete.
+    - d. **Repeat** steps a–c until the LLM signals completion.
+4. **Reporting:** Summarize findings, generate explanations, and create visualizations for the user.
 
-1. Map the file summary into chunks, then reduce these chunks into a final summary.
-2. Agentic file finder
-   - *Context*: The entire summary of the file
-   - *Action*: Find the file
-
-### Flow high-level Design:
-
-1. **First Node**: This node is for ...
-2. **Second Node**: This node is for ...
-3. **Third Node**: This node is for ...
+**Flow Diagram:**
 
 ```mermaid
 flowchart TD
-    firstNode[First Node] --> secondNode[Second Node]
-    secondNode --> thirdNode[Third Node]
+    A["User provides Darshan log"] --> B["Parse & load to SQLite"]
+    B --> C["LLM: Generate initial symptoms (queries)"]
+    C --> D["Run SQL measurements"]
+    D --> E["LLM: Analyze results, reason, and propose next actions"]
+    E -->|More symptoms?| C
+    E -->|Done| F["LLM: Summarize, explain, and plot"]
+    F --> G["Show report to user"]
 ```
-## Utility Functions
 
-> Notes for AI:
-> 1. Understand the utility function definition thoroughly by reviewing the doc.
-> 2. Include only the necessary utility functions, based on nodes in the flow.
+---
 
-1. **Call LLM** (`utils/call_llm.py`)
-   - *Input*: prompt (str)
-   - *Output*: response (str)
-   - Generally used by most nodes for LLM tasks
+### 3. Utilities
 
-2. **Embedding** (`utils/get_embedding.py`)
-   - *Input*: str
-   - *Output*: a vector of 3072 floats
-   - Used by the second node to embed text
+- **Darshan Log Parser:** Converts Darshan log to SQLite DB (using existing tools or custom script).
+- **SQL Runner:** Executes SQL queries and returns results.
+- **LLM Wrapper:** For symptom generation, reasoning, and reporting.
+- **Plotting Utility:** Generates plots (e.g., matplotlib, plotly) from SQL results.
 
-## Node Design
+---
 
-### Shared Store
+### 4. Data Design
 
-> Notes for AI: Try to minimize data redundancy
-
-The shared store structure is organized as follows:
+**Shared Store Example:**
 
 ```python
 shared = {
-    "key": "value"
+    "darshan_log_path": "path/to/log",
+    "sqlite_db_path": "path/to/db.sqlite",
+    "schema": "...",  # SQL schema as string
+    "symptom_history": [
+        {
+            "title": "Small Transfer Sizes",
+            "description": "Frequent small I/O operations can hurt performance.",
+            "sql": "SELECT ...",
+            "result": {...},  # SQL result
+            "judgment": {
+                "is_warning": True,
+                "explanation": "..."
+            }
+        },
+        ...
+    ],
+    "report": {
+        "summary": "...",
+        "plots": [...],  # paths or data for plots
+        "recommendations": "...",
+    }
 }
 ```
 
-### Node Steps
+---
 
-> Notes for AI: Carefully decide whether to use Batch/Async Node/Flow.
+### 5. Node Design
 
-1. First Node
-  - *Purpose*: Provide a short explanation of the node’s function
-  - *Type*: Decide between Regular, Batch, or Async
-  - *Steps*:
-    - *prep*: Read "key" from the shared store
-    - *exec*: Call the utility function
-    - *post*: Write "key" to the shared store
+| Node Name            | Type    | Reads from         | Writes to         | Utility Used         | Description |
+|----------------------|---------|--------------------|-------------------|----------------------|-------------|
+| ParseDarshanLog      | Regular | darshan_log_path   | sqlite_db_path    | darshan_parser       | Converts log to SQLite |
+| IterativeSymptomLoop | Flow    | schema, history    | symptom_history   | LLM, sql_runner      | Iteratively proposes, measures, and reasons about symptoms |
+| GenerateReport       | Regular | symptom_history    | report            | LLM, plotter         | LLM summarizes, explains, and plots |
+| OutputReport         | Regular | report             |                   |                      | Presents report to user |
 
-2. Second Node
-  ...
+---
+
+### 6. Implementation Plan
+
+- Start with a minimal loop: parse log → LLM proposes one symptom → measure → LLM reasons → repeat or finish → report.
+- Expand LLM reasoning and visualization capabilities iteratively.
+- Add logging of the LLM’s “thought process” for transparency.
+
+---
+
+### 7. Optimization & Reliability
+
+- Add more sophisticated symptom detection and reasoning over time.
+- Allow user to provide custom symptoms or intervene in the loop.
+- Add retries and error handling for LLM and SQL steps.
+- Log all steps for debugging and reproducibility.
+
+---
+
+### 8. Internal Loop Start and Edge Case Handling
+
+The internal loop of the `IterativeSymptomLoop` node always begins at the **LLM: Reason & Propose Next** step. This design ensures there is no special edge case for "no symptoms yet":
+
+- On the first iteration, the LLM receives the schema and an empty history, and proposes the initial set of symptoms/queries.
+- On subsequent iterations, the LLM sees the history of symptoms and their results, and can propose follow-ups, refinements, or decide to stop.
+- The loop continues until the LLM signals that no further symptoms are needed.
+
+**Internal Loop Diagram:**
+
+```mermaid
+flowchart TD
+    S3["LLM: Reason & Propose Next"] --> S1["Run SQL Measurements"]
+    S1 --> S3
+    S3 -- "Done" --> S4["Return to Main Flow"]
+```
+
+**Summary:**
+- The loop always starts at the reasoning step, so the LLM can handle both empty and non-empty histories naturally.
+- There is no need for special handling of the "no symptoms yet" case; the LLM's reasoning is always the entry point.
+
+---
+
+**This section describes the iterative, agentic, ReAct-style design for Darshan log I/O inefficiency analysis.**
 
