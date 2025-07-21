@@ -4,7 +4,7 @@ from flow import darshan_flow
 
 def main():
     shared = {
-        "darshan_log_path": "path/to/darshan.log",  # TODO: Set actual log path
+        "darshan_log_path": "data/16-small-reads.darshan",  # TODO: Set actual log path
         "sqlite_db_path": None,
         "schema": None,
         "symptom_history": [],
