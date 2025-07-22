@@ -15,12 +15,10 @@ headers = {
     "Content-Type": "application/json",
 }
 
-def call_llm(prompt):
+def chat_llm(messages):
     data = {
         "model": model,
-        "messages": [
-            {"role": "user", "content": prompt}
-        ]
+        "messages": messages,
     }
     res = requests.post(url, headers=headers, json=data)
     if res.status_code != 200:
@@ -30,6 +28,18 @@ def call_llm(prompt):
     response_json = res.json()
     return response_json["choices"][0]["message"]["content"]
 
+
+def call_llm(prompt):
+    print("[call_llm] Latest prompt sent to LLM:\n", prompt)
+    return chat_llm([
+        {"role": "user", "content": prompt}
+    ])
+
 if __name__ == "__main__":
-    prompt = "What is the meaning of life?"
+    prompt = """You have access to tools. Here are the tools available
+- db_query - which takes in an sql query
+- add_conclusion - adds conclusion to list (text)
+
+Using these tools, please try to find out more about the database. the database contains hpc darshan i/o logs and you will want to find inefficient i/o patterns.
+"""
     print(call_llm(prompt))

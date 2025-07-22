@@ -70,8 +70,6 @@ class ReasonAndProposeNode(Node):
         prompt = f"""
 You are an expert in HPC I/O analysis. You will be given the database schema, the number of rows in the main table, and the history of previously checked symptoms. Each entry in the symptom history includes the result of the measurement. Your task is to propose the next set of I/O inefficiency symptoms to check.
 
-IMPORTANT: ONLY respond in valid JSON, as your output will be parsed directly. Do not add any extra text or formatting. Each symptom must have a 'title', a 'description', a 'reasoning' (where you explain your thought process for proposing it), and an 'sql' query to measure it.
-
 Only generate 2 symptoms.
 
 Database schema:
@@ -83,25 +81,34 @@ Symptom History (each entry includes the result of the measurement):
 {yaml.dump(symptom_history)}
 
 Respond with a list of new symptoms in JSON format:
+
+```json
 [
-  {{"title": ..., "description": ..., "reasoning": ..., "sql": ...}},
-  ...
+    {{
+        "title": ...,
+        "description": ...,
+        "sql": ...
+    }},
+    ...
 ]
-"""
-        print("[ReasonAndProposeNode] Prompt sent to LLM:\n", prompt)
+```
+""" #The {{'s are doubled because otherwise python will try to format them.
         # Call the LLM
         llm_response = call_llm(prompt)
 
         # Parse the LLM response as JSON
         try:
-            proposed_symptoms = json.loads(llm_response)
+            json_section = llm_response.split('```json\n')[-1].split('\n```')[0]
+            print(f"Found json: {json_section}")
+            proposed_symptoms = json.loads(json_section)
         except Exception as e:
             print("[ReasonAndProposeNode] Failed to parse LLM response as JSON:", e)
             print("[ReasonAndProposeNode] LLM response was:\n", llm_response)
+            breakpoint()
             proposed_symptoms = []
 
         return proposed_symptoms
-    
+
     def post(self, shared, prep_res, exec_res):
         # Store proposed symptoms/queries in shared for the next node
         shared["proposed_symptoms"] = exec_res
@@ -130,6 +137,8 @@ class RunSQLMeasurementsNode(Node):
         cursor = conn.cursor()
 
         for symptom in proposed_symptoms:
+            print("Processing symptom:")
+            pp(symptom)
             title = symptom.get("title")
             sql = symptom.get("sql")
             # Per docs: let errors propagate, handled by node retry/fallback
@@ -172,27 +181,35 @@ class LoopControllerNode(Node):
         # If there are no more proposed symptoms, we're done
         proposed_symptoms = shared.get("proposed_symptoms")
         symptom_history = shared.get("symptom_history")
-        if not proposed_symptoms or len(symptom_history) >= 4:
+        if not proposed_symptoms:
             print("[LoopControllerNode] No more symptoms to check. Exiting loop.")
+            return "default"
+        if len(symptom_history) >= 4:
+            print("[LoopControllerNode] Reached symptom limit")
             return "default"
         print("[LoopControllerNode] More symptoms to check. Continuing loop.")
         return "continue"
-    
+
     def post(self, shared, prep_res, exec_res):
         print(f"[LoopControllerNode] Action: {exec_res}")
         return exec_res
 
+class FinishSymptomLoop(Flow):
+    def prep(self, shared):
+        return None
+
+
 class IterativeSymptomLoop(Flow):
     """Iteratively propose, measure, and reason about I/O inefficiency symptoms using the LLM and SQL queries."""
     def __init__(self):
-        reason_node = ReasonAndProposeNode()
-        measure_node = RunSQLMeasurementsNode()
-        loop_node = LoopControllerNode()
+        reason_node = ReasonAndProposeNode(2, 5) #try 2 times with a 5 second gap in between
+        measure_node = RunSQLMeasurementsNode(2, 5)
+        loop_node = LoopControllerNode(2, 5)
+        finish_node = FinishSymptomLoop()
 
-        reason_node >> measure_node >> loop_node
-        # Loop: if loop_node returns 'continue', go back to reason_node
+        reason_node >> measure_node >> loop_node >> finish_node
         loop_node - "continue" >> reason_node
-        # If 'done', exit the loop
+
         super().__init__(start=reason_node)
 
 class GenerateReport(Node):
