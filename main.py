@@ -17,15 +17,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# Previous QA flow example:
-# from flow import create_qa_flow
-# def main():
-#     shared = {
-#         "question": "In one sentence, what's the end of universe?",
-#         "answer": None
-#     }
-#     qa_flow = create_qa_flow()
-#     qa_flow.run(shared)
-#     print("Question:", shared["question"])
-#     print("Answer:", shared["answer"])

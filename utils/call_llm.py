@@ -15,24 +15,35 @@ headers = {
     "Content-Type": "application/json",
 }
 
-def chat_llm(messages):
+def chat_llm(chat_history):
+    """
+    Send a chat history (list of {role, content} dicts) to the Groq API and return the LLM's response as a string.
+    The assistant's response is appended to chat_history.
+    Only add the initial prompt if chat_history is empty.
+    """
+    if not chat_history:
+        raise ValueError("chat_history must not be empty. Add the initial prompt as the first message.")
     data = {
         "model": model,
-        "messages": messages,
+        "messages": chat_history
     }
+    print("We are going to be sending a prompt soon.")
+    from pprint import pprint as pp
+    breakpoint()
     res = requests.post(url, headers=headers, json=data)
     if res.status_code != 200:
         print(f"Groq API request failed with status code {res.status_code}")
         print(res.text)
         raise RuntimeError("Groq API request failed")
     response_json = res.json()
-    return response_json["choices"][0]["message"]["content"]
+    response_content = response_json["choices"][0]["message"]["content"]
+    return response_content
 
 
 def call_llm(prompt):
     print("[call_llm] Latest prompt sent to LLM:\n", prompt)
     return chat_llm([
-        {"role": "user", "content": prompt}
+        {"role": "system", "content": prompt}
     ])
 
 if __name__ == "__main__":
