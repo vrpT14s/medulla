@@ -36,6 +36,11 @@ def get_schema(table: str, db_path: str):
     return (ret[0]['sql'])
     #return ret['sql']
 
+def add_to_report(text: str, report):
+    report += '\n'
+    report += text
+
+
 tools = [
     {
         "type": "function",
@@ -70,11 +75,29 @@ tools = [
                 "required": ["table"]
             }
         }
-    }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "add_to_report",
+            "description": "Append text to final report",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "text": {
+                        "type": "string",
+                        "description": "The text to append"
+                    }
+                },
+                "required": ["text"]
+            }
+        }
+    },
 ]
 
 #tool name to function
 tool_registry = {
     "sql_query": sql_query,
     "get_schema": get_schema,
+    "add_to_report": add_to_report,
 }
