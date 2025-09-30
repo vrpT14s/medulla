@@ -1,0 +1,120 @@
+# Full list of columns of POSIX table (A record represents how a certain rank interacted with a certain file_name)
+rank: MPI rank (process ID within job)
+file_name: Path of the file accessed
+
+module: Module name that generated this record
+record_id: Unique identifier for this record
+mount_pt: Mount point of the filesystem
+fs_type: Type of filesystem
+
+## Gross I/O size and operation counts
+POSIX_READS: Number of read operation
+POSIX_BYTES_READ: Total bytes read from this file
+POSIX_WRITES: Number of write operation
+POSIX_BYTES_WRITTEN: Total bytes written from this file
+
+## File size indicators
+POSIX_MAX_BYTE_READ: Highest offset byte read (add one to approximate filesize)
+POSIX_MAX_BYTE_WRITTEN: Highest offset byte written (add one to approximate filesize)
+
+## 4 most common sizes (This does not tell you the access sizes of all requests, only the 4 most common and their frequencies)
+POSIX_ACCESS1_ACCESS: First most common access size
+POSIX_ACCESS1_COUNT: Number of requests with this access size
+POSIX_ACCESS2_ACCESS: Second most common access size
+POSIX_ACCESS2_COUNT: Number of requests with this access size
+POSIX_ACCESS3_ACCESS: Third most common access size
+POSIX_ACCESS3_COUNT: Number of requests with this access size
+POSIX_ACCESS4_ACCESS: Fourth most common access size
+POSIX_ACCESS4_COUNT: Number of requests with this access size
+> If one of the access counts are zero, this means that the application did not have 4 unique sizes but less than 4, thus the access counters contains all the information necessary for all sizes. In general, you can find out how complete this breakdown is by comparing the sum of frequencies here versus the sum of read and write operations globally.
+
+## Access patterns
+POSIX_CONSEC_READS: Number of exactly adjacent reads
+POSIX_CONSEC_WRITES: Number of exactly adjacent writes
+POSIX_SEQ_READS: Number of sequential reads (increasing offsets)
+POSIX_SEQ_WRITES: Number of sequential writes (increasing offsets)
+
+POSIX_RW_SWITCHES: Number of times access alternated between read and write
+
+## 4 most common sizes (This does not tell you the access sizes of all requests, only the 4 most common and their frequencies) 
+> (strides are the difference in offsets between subsequent read/write requests)
+POSIX_STRIDE1_STRIDE: First most common stride size
+POSIX_STRIDE1_COUNT: Number of requests with this stride
+POSIX_STRIDE2_STRIDE: Second most common stride size
+POSIX_STRIDE2_COUNT: Number of requests with this stride
+POSIX_STRIDE3_STRIDE: Third most common stride size
+POSIX_STRIDE3_COUNT: Number of requests with this stride
+POSIX_STRIDE4_STRIDE: Fourth most common stride size
+POSIX_STRIDE4_COUNT: Number of requests with this stride
+> Only use this information if you can be sure that most of the strides are in this table, i.e. there aren't many distinct strides. You can check this by adding all the counts and comparing it to the total reads plus the total writes (since the total number of strides will number of reads - 1 + number of writes - 1)
+
+## Other operation counts
+POSIX_OPENS: Number of opens
+POSIX_DUPS: Number of file descriptor duplications (not duplicate reads/writes)
+POSIX_FSYNCS: Number of fsync calls
+POSIX_FDSYNCS: Number of fdatasync calls
+POSIX_FILENOS: Number of fileno calls (retrieve file descriptor)
+POSIX_STATS: Number of stat calls
+POSIX_SEEKS: Number of seeks
+POSIX_MMAPS: Number of mmap calls (usually -1 meaning not detected)
+
+## Alignment
+POSIX_FILE_ALIGNMENT: File alignment used for I/O
+POSIX_FILE_NOT_ALIGNED: Number of unaligned file operations
+POSIX_MEM_ALIGNMENT: Memory alignment used for I/O
+POSIX_MEM_NOT_ALIGNED: Number of unaligned memory accesses
+
+## Cumulative time for operations
+POSIX_F_READ_TIME: Cumulative time spent in reads
+POSIX_F_WRITE_TIME: Cumulative time spent in writes
+POSIX_F_META_TIME: Cumulative time in metadata operations
+
+## Operation start/end timestamps
+POSIX_F_OPEN_START_TIMESTAMP: Timestamp of first open 
+POSIX_F_OPEN_END_TIMESTAMP: Timestamp of last open
+POSIX_F_READ_START_TIMESTAMP: Timestamp of first read
+POSIX_F_READ_END_TIMESTAMP: Timestamp of last read
+POSIX_F_WRITE_START_TIMESTAMP: Timestamp of first write
+POSIX_F_WRITE_END_TIMESTAMP: Timestamp of last write
+POSIX_F_CLOSE_START_TIMESTAMP: Timestamp of first close
+POSIX_F_CLOSE_END_TIMESTAMP: Timestamp of last close
+
+## Rank variability and performance (only present in shared files)
+POSIX_FASTEST_RANK: Rank of the process with fastest I/O
+POSIX_FASTEST_RANK_BYTES: Bytes transferred by fastest rank
+POSIX_F_FASTEST_RANK_TIME: Fastest I/O time observed for any rank
+POSIX_SLOWEST_RANK: Rank of process with slowest I/O
+POSIX_SLOWEST_RANK_BYTES: Bytes transferred by slowest rank
+POSIX_F_SLOWEST_RANK_TIME: Slowest I/O time observed for any rank
+
+POSIX_F_VARIANCE_RANK_BYTES: Variance of total bytes moved across ranks
+POSIX_F_VARIANCE_RANK_TIME: Variance of total I/O time across ranks
+
+POSIX_F_MAX_READ_TIME: Duration of slowest read operation
+POSIX_F_MAX_WRITE_TIME: Duration of slowest write operation
+POSIX_MAX_READ_TIME_SIZE: Size of the slowest read operation
+POSIX_MAX_WRITE_TIME_SIZE: Size of the slowest write operation
+
+> Small reads/writes for parallel file systems are usually considered to be less than 1 MB, while tiny reads are considered to be less than 1 KB.
+## Data volume distribution (bucketed by I/O size)
+POSIX_SIZE_READ_0_100: Reads of size 0–100 bytes
+POSIX_SIZE_READ_100_1K: Reads of size 100–1 KB
+POSIX_SIZE_READ_1K_10K: Reads of size 1–10 KB
+POSIX_SIZE_READ_10K_100K: Reads of size 10 KB–100 KB
+POSIX_SIZE_READ_100K_1M: Reads of size 100 KB–1 MB
+POSIX_SIZE_READ_1M_4M: Reads of size 1–4 MB
+POSIX_SIZE_READ_4M_10M: Reads of size 4–10 MB
+POSIX_SIZE_READ_10M_100M: Reads of size 10 MB–100 MB
+POSIX_SIZE_READ_100M_1G: Reads of size 100 MB–1 GB
+POSIX_SIZE_READ_1G_PLUS: Reads of size >1 GB
+
+POSIX_SIZE_WRITE_0_100: Writes of size 0–100 bytes
+POSIX_SIZE_WRITE_100_1K: Writes of size 100–1 KB
+POSIX_SIZE_WRITE_1K_10K: Writes of size 1–10 KB
+POSIX_SIZE_WRITE_10K_100K: Writes of size 10 KB–100 KB
+POSIX_SIZE_WRITE_100K_1M: Writes of size 100 KB–1 MB
+POSIX_SIZE_WRITE_1M_4M: Writes of size 1–4 MB
+POSIX_SIZE_WRITE_4M_10M: Writes of size 4–10 MB
+POSIX_SIZE_WRITE_10M_100M: Writes of size 10 MB–100 MB
+POSIX_SIZE_WRITE_100M_1G: Writes of size 100 MB–1 GB
+POSIX_SIZE_WRITE_1G_PLUS: Writes of size >1 GB

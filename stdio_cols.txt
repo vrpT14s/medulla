@@ -1,0 +1,49 @@
+# Full list of columns of STDIO table (A record represents how a rank interacted with a file_name)
+rank: MPI rank (process ID within job)
+file_name: Path of the file accessed
+
+module: Module name that generated this record
+record_id: Unique identifier for this record
+mount_pt: Mount point of the filesystem
+fs_type: Type of filesystem
+
+## Gross I/O size and operation counts
+STDIO_READS: Number of reads
+STDIO_BYTES_READ: Total bytes read from this file
+
+STDIO_WRITES: Number of writes
+STDIO_BYTES_WRITTEN: Total bytes written from this file
+
+## Other operation counts
+STDIO_OPENS: Number of opens
+STDIO_SEEKS: Number of seeks
+
+## File info
+STDIO_MAX_BYTE_READ: Highest offset byte read
+STDIO_MAX_BYTE_WRITTEN: Highest offset byte written
+
+## Rank variability and performance (only present in shared files)
+STDIO_FASTEST_RANK: Rank of the process with fastest I/O
+STDIO_FASTEST_RANK_BYTES: Bytes transferred by fastest rank
+STDIO_F_FASTEST_RANK_TIME: Fastest I/O time observed for any rank
+STDIO_SLOWEST_RANK: Rank of process with slowest I/O
+STDIO_SLOWEST_RANK_BYTES: Bytes transferred by slowest rank
+STDIO_F_SLOWEST_RANK_TIME: Slowest I/O time observed for any rank
+
+STDIO_F_VARIANCE_RANK_BYTES: Variance of total bytes moved across ranks
+STDIO_F_VARIANCE_RANK_TIME: Variance of total I/O time across ranks
+
+## Cumulative time for operations
+MPIIO_F_READ_TIME: Cumulative time spent in reads
+MPIIO_F_WRITE_TIME: Cumulative time spent in writes
+MPIIO_F_META_TIME: Cumulative time in metadata operations
+
+## Operation start/end timestamps
+STDIO_F_OPEN_START_TIMESTAMP: Timestamp of first open 
+STDIO_F_OPEN_END_TIMESTAMP: Timestamp of last open
+STDIO_F_READ_START_TIMESTAMP: Timestamp of first read
+STDIO_F_READ_END_TIMESTAMP: Timestamp of last read
+STDIO_F_WRITE_START_TIMESTAMP: Timestamp of first write
+STDIO_F_WRITE_END_TIMESTAMP: Timestamp of last write
+STDIO_F_CLOSE_START_TIMESTAMP: Timestamp of first close
+STDIO_F_CLOSE_END_TIMESTAMP: Timestamp of last close

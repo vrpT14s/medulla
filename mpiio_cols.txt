@@ -1,0 +1,97 @@
+# Full list of columns of MPIIO table (A record represents how a certain rank interacted with a certain file_name)
+rank: MPI rank (process ID within job)
+file_name: Path of the file accessed
+
+module: Module name that generated this record
+record_id: Unique identifier for this record. More records != more usage! Few records can move many bytes compared to many records moving few bytes.
+mount_pt: Mount point of the filesystem
+fs_type: Type of filesystem
+
+## Gross I/O size and operation counts
+MPIIO_INDEP_READS: Number of independent reads
+MPIIO_COLL_READS: Number of collective reads
+MPIIO_NB_READS: Number of non-blocking reads
+MPIIO_SPLIT_READS: Number of split reads
+MPIIO_BYTES_READ: Total bytes read from this file
+
+MPIIO_INDEP_WRITES: Number of independent writes
+MPIIO_COLL_WRITES: Number of collective writes
+MPIIO_NB_WRITES: Number of non-blocking writes
+MPIIO_SPLIT_WRITES: Number of split writes
+MPIIO_BYTES_WRITTEN: Total bytes written from this file
+
+## Other operation counts
+MPIIO_INDEP_OPENS: Number of independent opens
+MPIIO_COLL_OPENS: Number of collective opens
+MPIIO_SYNCS: Number of syncs
+MPIIO_HINTS: Number of times MPI hints was used
+MPIIO_VIEWS: Number of times MPI file views were used
+
+## File info
+MPIIO_MAX_BYTE_READ: Highest offset byte read
+MPIIO_MAX_BYTE_WRITTEN: Highest offset byte written
+
+## 4 most common sizes (This does not tell you the access sizes of all requests, only the 4 most common and their frequencies)
+MPIIO_ACCESS1_ACCESS: First most common access size
+MPIIO_ACCESS1_COUNT: Number of requests with this access size
+MPIIO_ACCESS2_ACCESS: Second most common access size
+MPIIO_ACCESS2_COUNT: Number of requests with this access size
+MPIIO_ACCESS3_ACCESS: Third most common access size
+MPIIO_ACCESS3_COUNT: Number of requests with this access size
+MPIIO_ACCESS4_ACCESS: Fourth most common access size
+MPIIO_ACCESS4_COUNT: Number of requests with this access size
+> If one of the access counts are zero, this means that the application did not have 4 unique sizes but less than 4, thus the access counters contains all the information necessary for all sizes. In general, you can find out how complete this breakdown is by comparing the sum of frequencies here versus the sum of read and write operations globally.
+
+## Rank variability and performance (only present in shared files)
+MPIIO_FASTEST_RANK: Rank of the process with fastest I/O
+MPIIO_FASTEST_RANK_BYTES: Bytes transferred by fastest rank
+MPIIO_F_FASTEST_RANK_TIME: Fastest I/O time observed for any rank
+MPIIO_SLOWEST_RANK: Rank of process with slowest I/O
+MPIIO_SLOWEST_RANK_BYTES: Bytes transferred by slowest rank
+MPIIO_F_SLOWEST_RANK_TIME: Slowest I/O time observed for any rank
+
+MPIIO_F_VARIANCE_RANK_BYTES: Variance of total bytes moved across ranks
+MPIIO_F_VARIANCE_RANK_TIME: Variance of total I/O time across ranks
+
+MPIIO_F_MAX_READ_TIME: Duration of slowest read operation
+MPIIO_F_MAX_WRITE_TIME: Duration of slowest write operation
+MPIIO_MAX_READ_TIME_SIZE: Size of the slowest read operation
+MPIIO_MAX_WRITE_TIME_SIZE: Size of the slowest write operation
+
+## Cumulative time for operations
+MPIIO_F_READ_TIME: Cumulative time spent in reads
+MPIIO_F_WRITE_TIME: Cumulative time spent in writes
+MPIIO_F_META_TIME: Cumulative time in metadata operations
+
+## Operation start/end timestamps
+MPIIO_F_OPEN_START_TIMESTAMP: Timestamp of first open 
+MPIIO_F_OPEN_END_TIMESTAMP: Timestamp of last open
+MPIIO_F_READ_START_TIMESTAMP: Timestamp of first read
+MPIIO_F_READ_END_TIMESTAMP: Timestamp of last read
+MPIIO_F_WRITE_START_TIMESTAMP: Timestamp of first write
+MPIIO_F_WRITE_END_TIMESTAMP: Timestamp of last write
+MPIIO_F_CLOSE_START_TIMESTAMP: Timestamp of first close
+MPIIO_F_CLOSE_END_TIMESTAMP: Timestamp of last close
+
+## Data volume distribution (bucketed by I/O size)
+MPIIO_SIZE_READ_AGG_0_100: Reads of size 0–100 bytes
+MPIIO_SIZE_READ_AGG_100_1K: Reads of size 100–1 KB
+MPIIO_SIZE_READ_AGG_1K_10K: Reads of size 1–10 KB
+MPIIO_SIZE_READ_AGG_10K_100K: Reads of size 10 KB–100 KB
+MPIIO_SIZE_READ_AGG_100K_1M: Reads of size 100 KB–1 MB
+MPIIO_SIZE_READ_AGG_1M_4M: Reads of size 1–4 MB
+MPIIO_SIZE_READ_AGG_4M_10M: Reads of size 4–10 MB
+MPIIO_SIZE_READ_AGG_10M_100M: Reads of size 10 MB–100 MB
+MPIIO_SIZE_READ_AGG_100M_1G: Reads of size 100 MB–1 GB
+MPIIO_SIZE_READ_AGG_1G_PLUS: Reads of size >1 GB
+
+MPIIO_SIZE_WRITE_AGG_0_100: Writes of size 0–100 bytes
+MPIIO_SIZE_WRITE_AGG_100_1K: Writes of size 100–1 KB
+MPIIO_SIZE_WRITE_AGG_1K_10K: Writes of size 1–10 KB
+MPIIO_SIZE_WRITE_AGG_10K_100K: Writes of size 10 KB–100 KB
+MPIIO_SIZE_WRITE_AGG_100K_1M: Writes of size 100 KB–1 MB
+MPIIO_SIZE_WRITE_AGG_1M_4M: Writes of size 1–4 MB
+MPIIO_SIZE_WRITE_AGG_4M_10M: Writes of size 4–10 MB
+MPIIO_SIZE_WRITE_AGG_10M_100M: Writes of size 10 MB–100 MB
+MPIIO_SIZE_WRITE_AGG_100M_1G: Writes of size 100 MB–1 GB
+MPIIO_SIZE_WRITE_AGG_1G_PLUS: Writes of size >1 GB

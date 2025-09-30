@@ -1,0 +1,17 @@
+# Full list of columns of LUSTRE table (A record represents how a certain file is split up over OST's)
+> Ignore the rank column, it's meaniningless. It may cause duplicate values so use file_name as differentiator.
+
+## Global info (duplicated per record)
+LUSTRE_OSTS: number of OSTs across the entire file system
+LUSTRE_MDTS: number of MDTs across the entire file system
+
+## Per-file breakdown
+LUSTRE_STRIPE_WIDTH: number of OSTs over which the file is striped
+LUSTRE_STRIPE_SIZE: stripe size for file in bytes
+LUSTRE_STRIPE_OFFSET: OST ID offset specified when the file was created. (This does not refer to a byte offset)
+
+### OST ID list
+LUSTRE_OST_ID_*: indices of OSTs over which the file is striped, starts from zero
+> There are WIDTH number of columns here. So for example, if width is 2 then there will be 2 columns here:
+> LUSTRE_OST_ID_0, LUSTRE_OST_ID_1
+> And inside will be 2 OST ID's that tell you over which specific OST's the files were striped.
