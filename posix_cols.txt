@@ -36,7 +36,7 @@ POSIX_SEQ_WRITES: Number of sequential writes (increasing offsets)
 
 POSIX_RW_SWITCHES: Number of times access alternated between read and write
 
-## 4 most common sizes (This does not tell you the access sizes of all requests, only the 4 most common and their frequencies) 
+## 4 most common sizes (This does not tell you the access sizes of all requests, only the 4 most common and their frequencies)
 > (strides are the difference in offsets between subsequent read/write requests)
 POSIX_STRIDE1_STRIDE: First most common stride size
 POSIX_STRIDE1_COUNT: Number of requests with this stride
@@ -70,7 +70,7 @@ POSIX_F_WRITE_TIME: Cumulative time spent in writes
 POSIX_F_META_TIME: Cumulative time in metadata operations
 
 ## Operation start/end timestamps
-POSIX_F_OPEN_START_TIMESTAMP: Timestamp of first open 
+POSIX_F_OPEN_START_TIMESTAMP: Timestamp of first open
 POSIX_F_OPEN_END_TIMESTAMP: Timestamp of last open
 POSIX_F_READ_START_TIMESTAMP: Timestamp of first read
 POSIX_F_READ_END_TIMESTAMP: Timestamp of last read
@@ -90,6 +90,7 @@ POSIX_F_SLOWEST_RANK_TIME: Slowest I/O time observed for any rank
 POSIX_F_VARIANCE_RANK_BYTES: Variance of total bytes moved across ranks
 POSIX_F_VARIANCE_RANK_TIME: Variance of total I/O time across ranks
 
+## Slowest operation times and the size for this (max across all ranks if a shared file)
 POSIX_F_MAX_READ_TIME: Duration of slowest read operation
 POSIX_F_MAX_WRITE_TIME: Duration of slowest write operation
 POSIX_MAX_READ_TIME_SIZE: Size of the slowest read operation

@@ -28,10 +28,13 @@ def sql_query(query: str):
         print(f"SQL: result: ")
         print(f"This is result = {result}")
         #breakpoint()
-    if len(yaml.dump(result)) > 500:
+    if len(yaml.dump(result)) > 2000:
         print("result too long")
-        return {"error": "Error: Query result longer than 500 bytes. Please reframe your query."}
-    else: 
+        return {"error": "Error: Query result longer than 2000 bytes. Please reframe your query."}
+    elif len(result) != 0 and len(result) * len(result[0].keys()) > 100:
+        print("result too long")
+        return {"error": "Error: Query result contained more than 100 objects (i.e. rows * columns). Please reframe your query."}
+    else:
         return {"output": result}
 
 short_descriptions = {
@@ -43,7 +46,7 @@ table name LUSTRE:
 """,
 
     "stdio": """
-table name STDIO: 
+table name STDIO:
 - Less informative than the other tables
 - Gross I/O size, read/write operation counts, approximate file size
 - Metadata operation counts (opens, seeks)
@@ -67,7 +70,7 @@ table name POSIX:
 """,
 
     "mpiio": """
-table name MPIIO: 
+table name MPIIO:
  - I/O counts & sizes: independent, collective, non-blocking, and split reads/writes; total bytes read/written; 4 most common access sizes with counts; bucketed I/O sizes for reads and writes
  - Other operations counts: independent/collective opens, syncs, hints, views
  - Cumulative time spent in reads, writes, and metadata
@@ -117,7 +120,7 @@ Do not access this table! Under construction.
 def submit_final_analysis(analysis: str):
     assert(0, "You shouldn't be here.");
     return
-    
+
 
 tools = [
     {
@@ -166,17 +169,17 @@ tools = [
 #                        "analysis": "string",
 #                        "description": """
 #Your analysis, in a list of queries and conclusions. You do not need to list all of the queries you have run, only the desicive ones that have confirmed your conclusion. Each conclusion needs a query to prove it, though. For example:
-#Query 1: ran 
+#Query 1: ran
 #```
 #SELECT AVG(
-#           CASE 
-#               WHEN POSIX_MAX_BYTE_READ > POSIX_MAX_BYTE_WRITTEN 
+#           CASE
+#               WHEN POSIX_MAX_BYTE_READ > POSIX_MAX_BYTE_WRITTEN
 #               THEN POSIX_MAX_BYTE_READ + 1
 #               ELSE POSIX_MAX_BYTE_WRITTEN + 1
 #           END
 #       ) AS avg_filesize
 #FROM POSIX;
-#``` 
+#```
 #and received 4.9 GB
 #Conclusion 1: Average filesize is small (< 5 GB).
 #
@@ -184,9 +187,9 @@ tools = [
 #```
 #SELECT COUNT(*) * 1.0 / (SELECT COUNT(*) FROM POSIX) AS fraction_small_files
 #FROM POSIX
-#WHERE 
-#    (CASE 
-#        WHEN POSIX_MAX_BYTE_READ > POSIX_MAX_BYTE_WRITTEN 
+#WHERE
+#    (CASE
+#        WHEN POSIX_MAX_BYTE_READ > POSIX_MAX_BYTE_WRITTEN
 #        THEN POSIX_MAX_BYTE_READ + 1
 #        ELSE POSIX_MAX_BYTE_WRITTEN + 1
 #     END) < 10 * 1024 * 1024 * 1024;  -- 10 GB in bytes
@@ -226,4 +229,3 @@ tool_registry = {
     #"add_to_report": add_to_report,
 #    "submit_final_analysis": submit_final_analysis
 }
-

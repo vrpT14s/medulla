@@ -12,14 +12,14 @@ DB_PATH = sys.argv[1] if len(sys.argv) > 1 else "sw4.db"
 tree = load(DB_PATH)
 #print(tree)
 
-patterns = [(c['title'], c['value']['pattern_detected']) for c in tree['children'][0]['children']]
+patterns = [(c['title'], c['value']['pattern_detected']) for c in tree['children'][1]['children']]
 
 from pprint import pprint
 
 x = patterns
 pprint([i[0] for i in x if i[1] == True])
 
-y = tree['children'][0]['children']
+y = tree['children'][1]['children']
 
 if len(sys.argv) > 2:
     for i in y:

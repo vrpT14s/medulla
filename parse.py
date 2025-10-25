@@ -1,6 +1,10 @@
 import sys
+from dotenv import load_dotenv
+import os
 
-DB_PATH = sys.argv[1] if len(sys.argv) > 1 else "sw4.db"
+load_dotenv()
+DB_PATH = os.getenv("DB_PATH")
+assert DB_PATH
 
 print(f"Using database: {DB_PATH}")
 
@@ -99,7 +103,7 @@ pprint(tree, sort_dicts=False)
 prompt_skel_brain = """
 You are an HPC I/O expert who will be analyzing the logs of a job. You will be given tools to interact with a database system containing these logs as tables. You are currently focusing on one section of a larger report, here is the title of this section: {title}
 
-Here is some more information about this section - 
+Here is some more information about this section -
 {parents_toc}
 {description}
 
@@ -128,7 +132,7 @@ You should submit your final analysis in json format such that it's directly par
 You must submit your analysis even if you believe the pattern is not detected.
 Your queries will be run and the output will be checked to see if they match and we'll check if it's the same, and all numbers are equal to two significant figures. We also ignore column order. If any of your outputs were wrong, we ask you to fix it, you must do so and send your new complete output in the same format afterwards, like I mentioned before.
 
-Do not flag everything as an inefficiency. Only if you feel like you have good evidence, flag it as one. Treat it as a court of law.
+Do not flag everything as an inefficiency. Only if you feel like you have good evidence, flag it as one. Treat it as a court of law. Even if you detect this inefficiency, consider whether or not it is useful to flag this to the user, i.e. how much percentage improvement in the application runtime could be received by fixing this inefficiency.
 
 """
 #Describe what you found out about the application and include a section about your reasoning, explaining what queries you sent and what you got in return.
@@ -137,14 +141,19 @@ prompt_skel_nerves = """
 A data source is a collection of tables from a specific log along with expert descriptions of the columns and their uses. You only have one data source currently, a darshan log:
 
 
-# Darshan log data source - 
-> The tables are related in this way: both STDIO and MPIIO indirectly call POSIX. Thus a call in either will also indirectly show up in the POSIX table, but the I/O access pattern will be transformed.
-> For example with MPIIO, if collective read/writes are used then many small writes can be transformed into one large write (collective buffering), and similarly many reads into one large read (data sieving). So there is a correlation between the two layers but not a one-to-one mapping of the I/O pattern.
+# Darshan log data source -
+> Darshan works by instrumenting function calls such as POSIX read()/write()/etc., STDIO's fwrite()/etc., and MPIIO's MPI_File_read_at() as well as all the other kinds of read, write, metadata functions available to MPI. The module then records properties of this function call before letting the underlying operation run. After the program is done, darshan then aggregates all this information into a log. Some properties recorded are 1) Operation counts for each kind of operation (POSIX reads, MPIIO collective writes, STDIO reads, etc.), 2) a course histogram of access sizes for read/write ops (it needs to be course because darshan needs to have low overhead), 3) timestamps at which the file was open and closed and when the first and last reads and writes happened, 4) net time taken for all operations for read and write and meta, as well as the maximum time taken for a single operation, and the size of this maximum time. It also records other properties such whether access was sequential and consecutive for POSIX and records the top 4 most common strides and access sizes as well.
+> When an MPIIO operation is called, the MPIIO library usually transforms this operation to get better performance, and then calls an underlying POSIX function to do the actual read/write. Thus a read operation will be seen both in the MPIIO layer and a transformed version in the POSIX layer. For example, operations can be aggregated between ranks on the same node causing the POSIX layer to have only one rank per physical node do I/O. In that case the access sizes will be larger because all the data has been aggregated into one rank.
+> In general darshan usually has limited information. For example it doesn't record all access sizes (as that would cause too much overhead) but only records a coarse histogram and the top 4 most common ones. Sometimes 4 is enough for almost all operations and sometimes 4 isn't. You can tell how well the log captures information by checking the operation frequencies in this case.
+> Another issue is that if a file is accessed by all ranks then darshan aggregates that log, i.e. it only records the total number of reads by summing all of them and doesn't record per-rank statistics. This is only to decrease overhead. However this aggregation is sometimes disabled by cluster admins, in which case each rank gets its own record in the log. These aggregated records can be very important since a lot of the time the main file in an application is a shared file accessed by all ranks. Aggregated records can mess with timing calculations if you don't pay attention. The timestamps are calculated by taking minimums and maximums (the read start time is the minimum, the read end is the maximum, etc.) while the cumulative time values are calculated by taking the sums. Thus you can't compare the two directly or cumulative operation time values with total runtime as they have different meanings: total runtime and timestamp values are about the maximums over all ranks and is viewed from a single rank while cumulative time values are about the sums over all ranks.
+> In case the record is aggregated, the rank column will hold the value -1. Remember that this does not mean that the record is missing. If MMAP or other counters have -1 though, it does mean that it's missing. So rank is an exception when it comes to the meaning of -1.
 
-> If the rank is -1 this simply means many ranks wrote to that file but to save log space, that log info was aggregated. You have info about the fastest and slowest ranks and the variance in times of each, but there's not as much information as a full listing. Again, this is not because the files are different but simply due to log constraints. The rank being -1 does NOT mean that there weren't individual accesses to that file, it only means that we couldn't record them in the log due to space constraingt.
-> Note that it does NOT mean that the record is missing. Those records also contain important information about the log and MUST be considered. In general, do NOT believe that number of records is the same as amount of usage. Some records can be much more important than other ones.
+> Darshan also stores data for how a file is striped over OST's in the lustre table, though not always. Some clusters opt out of this data or the log was from before this was introduced, in those cases the information will not be present.
 
 {data_sources}
+
+Here is the number of procs and runtime in seconds:
+{header}
 
 You have two tools available to you that you MUST use in order to understand the log: ```get_schema``` to get the schema and the expert descriptions, and ```sql_query``` to run a sql query and get back results. You MUST run the tool get_schema to understand the schema before running sql_query. You must run either as many times as you'd like until you feel satisfied with the accuracy of the analysis in this section. Every number MUST come from the database and through a SQL query. You MUST use these tools to make conclusions about this log.
 
@@ -154,7 +163,7 @@ Avoid doing arithmetic by hand.
 """
 
 prompt_skel_context = """
-Here is some additional context about the job:
+Here are some observations found in prior investigations to give you a wider context about the job:
 {context}
 """
 
@@ -187,7 +196,7 @@ Snippet of table of contents for context:
 {snippet}
 """.strip()
 
-    from tools import list_tables
+    from tools import list_tables, sql_query
     node["sys_prompt"] = (
         prompt_skel_brain.format(
             title=node["title"],
@@ -195,18 +204,21 @@ Snippet of table of contents for context:
             parents_toc=parents_toc,
         )
         + prompt_skel_medulla
-        + prompt_skel_nerves.format(data_sources=list_tables())
+        + prompt_skel_nerves.format(
+            data_sources=list_tables(),
+            header=sql_query('select nprocs, runtime from HEADER')['output'][0],
+            )
     )
 
     if node.get('context_from'):
         ctx_id = node['context_from']
         subnode = find_node_by_id(tree, ctx_id)
-        context = subnode['summary']
+        context = subnode['value']
         node["sys_prompt"] += prompt_skel_context.format(context=context)
 
     print(node['sys_prompt'])
 
-#TODO: Chat interface from chat.py 
+#TODO: Chat interface from chat.py
 
 from chat import Chat
 def attach_node_value(node):
@@ -240,18 +252,18 @@ def handle(node, parents=None, number_prefix="1"):
         for idx, child in enumerate(node["children"], 1):
             child_number_prefix = f"{section_number}.{idx}"
             handle(child, current_parents, number_prefix=child_number_prefix)
-        if node.get("summarize_children"):
-            prompt = f"""
-Summarize what this markdown tells us about the I/O of the application its analyzing:
-#{node.get("title")}
-{node.get("description")}
+#        if node.get("summarize_children"):
+#            prompt = f"""
+#Summarize what this markdown tells us about the I/O of the application its analyzing:
+##{node.get("title")}
+#{node.get("description")}
+#
+#""" + "\n\n".join(f"##{child['title']}\n{child['value']}" for child in node["children"])
+#
+#            node['summarychat'] = Chat(prompt, "")
+#            node['summary'] = node['summarychat'].call_llm()
+#            print(f"SUMMARY RECEIVED:\n{node['summary']}")
 
-""" + "\n\n".join(f"##{child['title']}\n{child['value']}" for child in node["children"])
-
-            node['summarychat'] = Chat(prompt, "")
-            node['summary'] = node['summarychat'].call_llm()
-            print(f"SUMMARY RECEIVED:\n{node['summary']}")
-            
     else:
         # Leaf node: attach prompt and run LLM
         attach_prompt(node, current_parents)

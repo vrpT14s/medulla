@@ -96,7 +96,7 @@ class Chat:
         if last.parts is None:
             return
 
-        
+
         for part in last.parts:
             if part.function_call:
                 call_present = True
@@ -158,7 +158,7 @@ class Chat:
             for _ in [1]:
             #try:
                 output = self.call_llm_full()
-                
+
                 if output.text:
                     try:
                         cleaned = re.sub(r"<think>.*?</think>", "", output.text.strip(), flags=re.DOTALL).strip()
@@ -184,7 +184,7 @@ class Chat:
                         cleaned = re.sub(r"</json>", "", cleaned.strip(), flags=re.DOTALL).strip()
                         cleaned = re.sub(r"```", "", cleaned.strip(), flags=re.DOTALL).strip()
 
-            
+
                         value = json.loads(cleaned)
                     except Exception as e:
                         breakpoint()
@@ -207,7 +207,7 @@ We were able to parse your json but the shape is wrong, specifically we couldn't
                         continue
 
                     self.value = value
-                                
+
                     if self.check_queries(value) == True:
                         return self.value
                     retries = 0
@@ -263,7 +263,7 @@ This is the correct output:
 This was the output you passed:
 {json.dumps(llm_output)}
 
-Please correct this output, or if your query was wrong, change your query. You might need to change your analysis based on this as well. Send your new output afterwards. If you understand me, please say apple.
+Please correct this output, or if your query was wrong, change your query. You might need to change your analysis based on this as well. Send your new output afterwards.
 """)
                 return False
         print("\n\nNo errors in llm output found.\n")

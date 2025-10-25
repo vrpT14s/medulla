@@ -53,6 +53,7 @@ MPIIO_F_SLOWEST_RANK_TIME: Slowest I/O time observed for any rank
 MPIIO_F_VARIANCE_RANK_BYTES: Variance of total bytes moved across ranks
 MPIIO_F_VARIANCE_RANK_TIME: Variance of total I/O time across ranks
 
+## Slowest operation times and the size for this (max across all ranks if a shared file)
 MPIIO_F_MAX_READ_TIME: Duration of slowest read operation
 MPIIO_F_MAX_WRITE_TIME: Duration of slowest write operation
 MPIIO_MAX_READ_TIME_SIZE: Size of the slowest read operation
@@ -64,7 +65,7 @@ MPIIO_F_WRITE_TIME: Cumulative time spent in writes
 MPIIO_F_META_TIME: Cumulative time in metadata operations
 
 ## Operation start/end timestamps
-MPIIO_F_OPEN_START_TIMESTAMP: Timestamp of first open 
+MPIIO_F_OPEN_START_TIMESTAMP: Timestamp of first open
 MPIIO_F_OPEN_END_TIMESTAMP: Timestamp of last open
 MPIIO_F_READ_START_TIMESTAMP: Timestamp of first read
 MPIIO_F_READ_END_TIMESTAMP: Timestamp of last read
