@@ -1,297 +1,184 @@
-import json
 import time
-import sqlite3
-import yaml
+from dataclasses import dataclass, field
+import nerves
+import prompts
 import json
-from dotenv import load_dotenv
-import os
-#import litellm
-import yaml
 import re
 from google import genai
 from google.genai import types
 
-from tools import *
+import os
+from dotenv import load_dotenv
 
 load_dotenv()
 client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
 
-from typing import Optional, Union
-from pydantic import BaseModel, ConfigDict
 
-
-class Observation(BaseModel):
-    #model_config = ConfigDict(extra='forbid')
-
-    query: Optional[str]
-    output: Optional[list[list[(str, Union[str, float, int])]]]
-    conclusion: str
-
-class Result(BaseModel):
-    #model_config = ConfigDict(extra='forbid')
-
-    inefficiency_detected: bool
-    analysis: list[Observation]
-
+@dataclass
 class Chat:
-    def __init__(self, sys_prompt: str, no_tools = False):
-        self.messages = []
-        self.garbage = []
-        self.tools = tools
-        if no_tools: self.tools = None
-        self.sys_prompt = sys_prompt
+    messages: list = field(default_factory=list)
+    breakpoint_on_failure: bool = False
 
-        self.add_sys(sys_prompt)
+    #function to get list of facts, if pattern_detected behaviour is on then you need to change it to lambda x: x['analysis']
+    fact_list_from_output: callable = field(default=lambda x: x)
 
-        self.value = None
-        self.ended = False
-        self.error = True
+    #retries run if queries/output fails or other parsing failure
+    #max number of retries is max_runs
+    def run_until_completion(self, max_runs=10):
+        delay = 3 #seconds
 
-        self.output_retries = 0
+        for i in range(max_runs):
+            response = self.run_once()
+            if response == '' or response is None:
+                print("empty response received.")
+                continue
 
+            #this adds error message onto the message list so that will get treated in the next loop
+            validated_response = self.get_validated_response(response)
+            if validated_response is not None:
+                return validated_response
 
-    @staticmethod
-    def make_msg(role: str, text: str):
-        """
-        Create a Google GenAI-compatible message for chat history.
-        role: "user" or "model"
-        text: message text
-        """
-        #return { "role" : role, "content" : text }
+            #time.sleep(delay) #i dont think i need a delay
+
+        breakpoint()
+        print(f"Model couldn't fix output after {max_runs}, probably never going to get it.")
+        return None
+
+    def add_user_msg(self, text: str):
+        #refer to the confusing genai api docs
         mytextpart = types.Part.from_text(text=text)
-        return types.Content(
-            role=role,
+        content = types.Content(
+            role="user", #if you want to add a system message, change to system (but i don't need that)
             parts=[mytextpart]
         )
+        self.messages.append(content)
 
-    def add_msg(self, role: str, txt: str):
-        self.messages.append(self.make_msg(role, txt))
-
-    def add_sys(self, txt: str):
-        self.add_msg("system", txt)
-
-    def add_user(self, txt: str):
-        self.add_msg("user", txt)
-
-    def add_tool_output(self, name: str, response: dict):
-        self.messages.append(
-            types.Content(
-                role="user",
-                parts=[
-                    types.Part(
-                        function_response=types.FunctionResponse(
-                            name=name,
-                            response=response
-                        )
-                    )
-                ]
-            )
-        )
-
-    def process_tool_calls(self, last, extra=dict()): #raw non-dict message
-        call_present = False
-
-        print("checking func calls")
-        breakpoint()
-        if last.parts is None:
-            return
-
-
-        for part in last.parts:
-            if part.function_call:
-                call_present = True
-                function_name = part.function_call.name
-                function_args = part.function_call.args or {}
-                function_to_call = tool_registry[function_name]
-
-                print(f"processing tool call {function_name} with args {function_args}")
-
-                function_response = function_to_call(
-                    **function_args,
-                    **extra,
-                )
-
-                self.add_tool_output(function_name, function_response)
-        if not call_present:
-            print("NO TOOL CALL!!")
-
-    def call_llm_full(self):
-        print(f"USING MODEL: {os.getenv('LLM_MODEL')}")
-        print(f"Us: {self.messages[-1]}\n")
-        response = client.models.generate_content(
-            model=os.getenv("GEMINI_MODEL"),    # e.g., "gemini-1.5-pro"
-            contents=self.messages[1:],           # your accumulated Content list
-            config=types.GenerateContentConfig(
-                automatic_function_calling=types.AutomaticFunctionCallingConfig(
-                    maximum_remote_calls=15
+    def run_once(self) -> str:
+        try:
+            response = client.models.generate_content(
+                model=os.getenv("GEMINI_MODEL"),    # e.g., "gemini-1.5-pro"
+                contents=self.messages[1:],
+                config=types.GenerateContentConfig(
+                    automatic_function_calling=types.AutomaticFunctionCallingConfig(
+                        maximum_remote_calls=15
+                    ),
+                    system_instruction=self.messages[0],
+                    max_output_tokens=8096,
+                    thinking_config=types.ThinkingConfig(thinking_budget="1024"),
+                    # temperature=0.7, top_p=0.9, etc.
+                    tools=nerves.agent_tools,
+                    #responseSchema = Result #i don't use this because gemini doesn't allow dicts in the schema
                 ),
-                system_instruction=self.messages[0],
-                max_output_tokens=8096,
-                thinking_config=types.ThinkingConfig(thinking_budget="1024"),
-                # temperature=0.7, top_p=0.9, etc.
-                tools=[get_schema, sql_query],
-                #responseSchema = Result
-            ),
-        )
-        main_response = response.candidates[0]
-
-        print("Response received")
-        self.messages.append(main_response.content)
-        #print(f"ASSISTANT: {main_response.text}")
-        #self.process_tool_calls(response)
-        #if (response.text == None):
-        #    self.add_user("You haven't submitted your analysis yet. Continue analyzing by using sql_query and get_schema then submit your analysis in the json schema I mentioned at the start in my first message.")
-        #    return response
-        #print(self.messages[-1])
-        #breakpoint()
-        #self.strip_old_tool_calls()
-        return response
-
-    def call_llm(self):
-        return self.call_llm_full().content
-
-    def __run__(self, max_retries=10, base_delay=1, max_delay=60):
-        retries = 0
-        delay = 3  # normal delay between successful polls
-
-        while True:
-            for _ in [1]:
-            #try:
-                output = self.call_llm_full()
-
-                if output.text:
-                    try:
-                        cleaned = re.sub(r"<think>.*?</think>", "", output.text.strip(), flags=re.DOTALL).strip()
-                        if cleaned == "": continue
-                        # Remove <json> ... </json>
-                        if cleaned.startswith("<json>") and cleaned.endswith("</json>"):
-                            cleaned = cleaned[len("<json>"):-len("</json>")].strip()
-                        # Remove ```json ... ```
-                        elif cleaned.startswith("```json") and cleaned.endswith("```"):
-                            cleaned = cleaned[len("```json"): -len("```")].strip()
-                        elif cleaned.startswith("```") and cleaned.endswith("```"):
-                            cleaned = cleaned[len("```"):-len("```")].strip()
-
-                        # Remove any leading non-JSON characters
-                        valid_starts = ('[', '{', '}', ']')
-                        for i, ch in enumerate(cleaned):
-                            if ch in valid_starts:
-                                cleaned = cleaned[i:]
-                                break
-
-                        cleaned = re.sub(r"```json", "", cleaned.strip(), flags=re.DOTALL).strip()
-                        cleaned = re.sub(r"<json>", "", cleaned.strip(), flags=re.DOTALL).strip()
-                        cleaned = re.sub(r"</json>", "", cleaned.strip(), flags=re.DOTALL).strip()
-                        cleaned = re.sub(r"```", "", cleaned.strip(), flags=re.DOTALL).strip()
+            )
+        except Exception as e:
+            print("Error running completion: {e}")
+            print("Waiting 10 seconds then rerunning.")
+            time.delay(10)
+            return ""
 
 
-                        value = json.loads(cleaned)
-                    except Exception as e:
-                        breakpoint()
-                        self.add_user(f"""
-There was an error parsing your final analysis json: {e}
-This was not a problem with what was inside, it was a problem with the json. You must ONLY respond with json text, do NOT include any text at the beginning that is not json. Please fix whatever was the issue here and send your new, fixed output, and the system will try to parse it again. Your next message should be the new output, do NOT respond with anything that is not json.
-""")
-                        continue
-                    try:
-                        self.pattern_detected = value['pattern_detected']
-                        if not (self.pattern_detected == True or self.pattern_detected == False):
-                            print("Error.")
-                            breakpoint()
-                    except Exception as e:
-                        breakpoint()
-                        self.add_user(f"""
-There was an error: {e}
-We were able to parse your json but the shape is wrong, specifically we couldn't find the value of pattern_detected.
-""")
-                        continue
 
-                    self.value = value
+        main_response = response.candidates[0].content
+        self.messages.append(main_response)
+        if not hasattr(response, 'text'):
+            print("For some reason the model didn't return visible text, maybe it spent all of its tokens on thinking tokens? Or could be malformed function call. Returning empty string.")
+            breakpoint()
+            return ""
+        return response.text
 
-                    if self.check_queries(value) == True:
-                        return self.value
-                    retries = 0
-                    time.sleep(delay)
+    def parse_output_text(self, response_text):
+        cleaned_text = cleanup_response_text(response_text) #removes <json> etc.
+        try:
+            json_output = json.loads(cleaned_text)
+        except json.JSONDecodeError as parse_err:
+            if self.breakpoint_on_failure:
+                breakpoint()
+            user_prompt = prompts.json_parse_err.format(parse_err=parse_err, cleaned_text=cleaned_text)
+            print(f"JSON Parsing failed: {user_prompt}") #log
+            self.add_user_msg(user_prompt)
+            return None
 
-            #except Exception as e:
-            #    print(f"Error during call: {e}")
-            #    breakpoint()
-            #    if retries >= max_retries:
-            #        print("Max retries reached, aborting.")
-            #        return None
+        return json_output
 
-            #    backoff = min(base_delay * (2 ** retries), max_delay)
-            #    print(f"Retrying in {backoff} seconds...")
-            #    time.sleep(backoff)
-            #    retries += 1
+    #fact needs to be a dict with both 'query' and 'output' attributes
+    def validate_fact(self, fact) -> bool:
+        '''runs queries and checks if outputs match'''
+        llm_query = fact['query']
+        llm_output = fact['output']
 
-    def check_queries(self, value):
-        for a in value["analysis"]:
-            llm_query = a['query']
-            llm_output = a['output']
+        if llm_query is None or llm_query.strip() == "":
+            return True #should i let the llm fill the whole list with empty queries? lol
 
-            if llm_query is None or llm_query.strip() == "":
-                continue #should i let the llm fill the whole list with empty queries? lol
+        true_output_wrapped = nerves.sql_query(llm_query)
+        if true_output_wrapped.get('error') is not None:
+            err_msg = prompts.output_query_run_err.format(run_err=true_output_wrapped['error'], llm_query=llm_query)
+            print(f"Validate query run failed: {err_msg}") #log
+            self.add_user_msg(err_msg)
+            return False
 
-            true_output = sql_query(llm_query)
-            if true_output.get('error') is not None:
-                print("SQL Error")
-                self.add_user(f"""Your query:
-{llm_query}
-had an error while running. Please fix it. If you added something like 'N/A' then please remove that and replace the query with null.
-Specifically, here is the error:
-{true_output['error']}
-Fix it and resend the full, complete, fixed output.
-""")
-                return False
-            true_output = true_output['output']
-            diff = diff_query_output(true_output, llm_output)
-            if diff is not None:
-                if self.output_retries > 0:
-                    del self.messages[-2]
-                    del self.messages[-3]
-
-                self.output_retries += 1
-                self.add_user(f"""
-One of the outputs you gave did not match the query output we gave.
-It was for this query:
-{llm_query}
-
-This is the correct output:
-{json.dumps(true_output)}
-
-This was the output you passed:
-{json.dumps(llm_output)}
-
-Please correct this output, or if your query was wrong, change your query. You might need to change your analysis based on this as well. Send your new output afterwards.
-""")
-                return False
-        print("\n\nNo errors in llm output found.\n")
+        true_output = true_output_wrapped['output']
+        diff = diff_query_output(true_output, llm_output)
+        if diff is not None:
+            err_msg = prompts.output_query_match_err.format(llm_query=llm_query, llm_output=llm_output, true_output=true_output)
+            print(f"Validate query match failed: {err_msg}") #log
+            self.add_user_msg(err_msg)
+            return False
         return True
 
+    def get_validated_response(self, response_text):
+        parsed_response = self.parse_output_text(response_text)
+        if parsed_response is None:
+            return None
 
-#    def __run__(self):
-#        while True:
-#            output = self.call_llm_full()
-#            print("Assistant:", output.content)
-#            print("Reasoning:", output.reasoning)
-#
-#            final = self.extract_final_yaml(output.content)
-#            if final is not None:
-#                #cont = input("Node finished. Press enter: ")
-#                print("Node finished.\n")
-#                return final
-#
-#            #cont = input("Press Enter to continue, or type 'q' to quit: ")
-#            #if cont.lower() == 'q':
-#            #    return None
-#            import time
-#            time.sleep(5)
+        for fact in self.fact_list_from_output(parsed_response):
+            if self.validate_fact(fact) is False:
+                return None
 
-if __name__ == '__main__':
-    Chat('sqlite/final.sqlite').__run__()
+        return parsed_response
 
-#--------------------------------------------------------------------------------
+def create_chat(sys_prompt: str, user_prompt, breakpoint_on_failure: bool = False, fact_list_from_output: bool = lambda x: x) -> Chat:
+    messages = [sys_prompt]
+    if user_prompt is not None:
+        messages.append(user_prompt)
+
+    chat = Chat(messages=messages, breakpoint_on_failure=breakpoint_on_failure, fact_list_from_output=fact_list_from_output)
+    return chat
+
+
+
+#-------------------------------------------------- HELPERS BELOW --------------------------------------------------
+
+
+#this doesn't need to be a class function because it doesn't need to add errors to context
+def cleanup_response_text(response_text): #bit of a dirty function
+    '''removes <json>, ``` markers that the model might have added by accident, so we can parse with json after'''
+    cleaned = re.sub(r"<think>.*?</think>", "", response_text.strip(), flags=re.DOTALL).strip()
+    assert cleaned != ""
+    # Remove <json> ... </json>
+    if cleaned.startswith("<json>") and cleaned.endswith("</json>"):
+        cleaned = cleaned[len("<json>"):-len("</json>")].strip()
+    # Remove ```json ... ```
+    elif cleaned.startswith("```json") and cleaned.endswith("```"):
+        cleaned = cleaned[len("```json"): -len("```")].strip()
+    elif cleaned.startswith("```") and cleaned.endswith("```"):
+        cleaned = cleaned[len("```"):-len("```")].strip()
+
+    # Remove any leading non-JSON characters
+    valid_starts = ('[', '{', '}', ']')
+    for i, ch in enumerate(cleaned):
+        if ch in valid_starts:
+            cleaned = cleaned[i:]
+            break
+
+    cleaned = re.sub(r"```json", "", cleaned.strip(), flags=re.DOTALL).strip()
+    cleaned = re.sub(r"<json>", "", cleaned.strip(), flags=re.DOTALL).strip()
+    cleaned = re.sub(r"</json>", "", cleaned.strip(), flags=re.DOTALL).strip()
+    cleaned = re.sub(r"```", "", cleaned.strip(), flags=re.DOTALL).strip()
+
+    return cleaned
+
+# this is to compare output against db vs output given by llm
+# might need to sort query output so they match up so its easier to compare the two? or match up ours with the llm's?
 
 def round_sig(x, sig_figs):
     """Round a number to the given number of significant figures."""
@@ -333,3 +220,6 @@ def diff_query_output(a, b, sig_figs=1):
     return True
 
 #------------------------------------------------------
+
+if __name__ == '__main__':
+    print(create_chat("You are a helpful person", "What is 3 + 3").run_once())

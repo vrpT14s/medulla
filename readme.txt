@@ -1,5 +1,5 @@
-parse.py is the main file and calls chat.py (the llm interface) which calls tools.py (the sql handling stuff), load.py is for loading the preprocessed traces that are in tracebench. orig.md is what guides the llm.
+to run, do
 
-To run, you need to add a gemini key and a model name and database path to the .env file and then run parse.py.
+python parse.py
 
-Code is pretty bad because of the deadline and also because I change things very often. But it does work and the llm has some error handling stuff where we ask it to fix its output too. I'll add more details in the paper draft explaining this.
+you need to have a .env file, to see the structure, look at example.env

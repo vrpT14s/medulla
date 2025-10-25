@@ -90,7 +90,6 @@ POSIX_F_SLOWEST_RANK_TIME: Slowest I/O time observed for any rank
 POSIX_F_VARIANCE_RANK_BYTES: Variance of total bytes moved across ranks
 POSIX_F_VARIANCE_RANK_TIME: Variance of total I/O time across ranks
 
-## Slowest operation times and the size for this (max across all ranks if a shared file)
 POSIX_F_MAX_READ_TIME: Duration of slowest read operation
 POSIX_F_MAX_WRITE_TIME: Duration of slowest write operation
 POSIX_MAX_READ_TIME_SIZE: Size of the slowest read operation
