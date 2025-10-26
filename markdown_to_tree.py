@@ -120,6 +120,7 @@ def dict_to_anytree(d, parent=None):
     return node
 
 root = dict_to_anytree(trees[0])
+root.section_number = "Report title"
 import postparse
 postparse.process_node(root)
 #print(RenderTree(root))

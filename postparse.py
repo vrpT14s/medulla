@@ -1,3 +1,11 @@
+def attach_section_number(node):
+    nums = [] #bug if we're dealing with topmost section
+    table_of_contents = []
+    for p in list(node.ancestors[1:]) + [node]:
+        nums += [p.child_number]
+        section_number = '.'.join(str(num) for num in nums)
+        node.section_number = section_number
+
 def process_node(node):
     if getattr(node, "children_eval", None) == "sequential" and len(node.children) > 1:
         for child in node.children:
@@ -15,3 +23,4 @@ def process_node(node):
         child.child_number = i
         i += 1
         process_node(child)
+        attach_section_number(child)

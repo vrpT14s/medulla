@@ -29,7 +29,7 @@ def sql_query(query: str):
 
     if len(yaml.dump(result)) > 2000:
         print("result too long")
-        return {"error": f"Error: Query result longer than 2000 characters. (It returned {len(results)} rows and {len(results[0]) if len(results) != 0 else 0} columns). Please reframe your query."}
+        return {"error": f"Error: Query result longer than 2000 characters. (It returned {len(result)} rows and {len(result[0]) if len(result) != 0 else 0} columns). Please reframe your query."}
     else:
         return {"output": result}
 

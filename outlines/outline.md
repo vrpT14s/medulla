@@ -18,7 +18,7 @@ flags:
 #### across STDIO
 ```
 flags:
-    HIGH_STDIO: greater than posix
+    HIGH_STDIO: greater usage of stdio than posix
 ```
 
 #### Cumulative Load
@@ -27,21 +27,18 @@ flags:
 flags:
     HIGH_METADATA_LOAD: total time spent on metadata is very high across the program (> 30% of total)
 ```
+You can use the values from the previous sections, you don't need to recompute them.
 
 ### File analysis in POSIX
 #### Coarse File Analysis
 > 1000 files were accessed. Average filesize was 10 GB, max was 20 GB, minimum was 500 bytes, standard deviation was xyz
 
-#### File name analysis
-> Based on filenames, there were generally two groups: 5 large write-only hdf5 files of the form '/mnt/lustre/output-*.hdf5' (mean 20 GB, stddev 1 GB), and one small read-intensive config file: '/mnt/lustre/output/config.ini'
+#### Per-file analysis
+> There were 5 large write-only hdf5 files of the form '/mnt/lustre/output-*.hdf5' (mean 20 GB, stddev 1 GB), and one small read-intensive config file: '/mnt/lustre/output/config.ini' (4 MB)
 
-Specifically do it this way:
-First list out 10 filenames to try and understand what common filenames there are, and to come up with patterns. if there's an obvious pattern then go ahead but if each file has a different pattern, then you can give up and say there was no clear file grouping.
-If there is, then make a list of glob patterns based on this, to group some files together, and find out some statistics and characteristics about them.
+If there are few files (less than 10) then look at each separately. If there are more, then group them together based on the name, like in the example analysis. If there are far too many (like > 30) then you can give up on the pattern and only look at the single most largest five files.
 
-Usually there should be a clear pattern and not too many files (often <= 5). If there are more than 6 patterns, consider it to be too complicated and say too many groups found.
-
-#### File group importance
+#### File importance
 > 50 GB in total was transferred to the hdf5 file group, with 99.9% being write (mean 10 GB, min 8 GB, max 11 GB, stddev xyz). Only 10 KB was transferred to the config file, with a read-write split of 55-45.
 > Since the small config file has very little share of traffic, we will ignore it in our analysis.
 
@@ -84,7 +81,8 @@ flags:
 flags:
     MISALIGNED_ACCESS: most access was misaligned
 ```
-> 78% of all accesses were misaligned with the 1 MB file alignment (? operations out of ? total).
+> 78% of all accesses were misaligned with the file alignment (1 MB) (? operations out of ? total).
+the file alignment doesn't need to be 1 MB, check whatever darshan records.
 
 ## MPIIO info analysis
 ```
@@ -109,7 +107,7 @@ only check mpiio because checking variance in posix layer is aggregation analysi
 ## PFS analysis
 ```
 context_from: global_context
-eval_children: sequential
+children_eval: sequential
 ```
 ### Resources
 > The cluster has 128 OST's and 3 MDT's holding 10 files, each with a mean size of 23 GB (std dev 2 GB), for a total load of 230 GB. The stripe length is 1 MB.

@@ -34,12 +34,12 @@ STDIO_F_VARIANCE_RANK_BYTES: Variance of total bytes moved across ranks
 STDIO_F_VARIANCE_RANK_TIME: Variance of total I/O time across ranks
 
 ## Cumulative time for operations
-MPIIO_F_READ_TIME: Cumulative time spent in reads
-MPIIO_F_WRITE_TIME: Cumulative time spent in writes
-MPIIO_F_META_TIME: Cumulative time in metadata operations
+STDIO_F_READ_TIME: Cumulative time spent in reads
+STDIO_F_WRITE_TIME: Cumulative time spent in writes
+STDIO_F_META_TIME: Cumulative time in metadata operations
 
 ## Operation start/end timestamps
-STDIO_F_OPEN_START_TIMESTAMP: Timestamp of first open 
+STDIO_F_OPEN_START_TIMESTAMP: Timestamp of first open
 STDIO_F_OPEN_END_TIMESTAMP: Timestamp of last open
 STDIO_F_READ_START_TIMESTAMP: Timestamp of first read
 STDIO_F_READ_END_TIMESTAMP: Timestamp of last read

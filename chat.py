@@ -14,6 +14,7 @@ load_dotenv()
 client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
 
 
+completions = 0
 @dataclass
 class Chat:
     messages: list = field(default_factory=list)
@@ -28,6 +29,7 @@ class Chat:
         delay = 3 #seconds
 
         for i in range(max_runs):
+            self.messages = [msg for msg in self.messages if msg != None] #i am 80% sure this is google's api's fault, it lets random none messages into my message list and i have to remove it here. it's not predictable.
             response = self.run_once()
             if response == '' or response is None:
                 print("empty response received.")
@@ -44,15 +46,20 @@ class Chat:
         print(f"Model couldn't fix output after {max_runs}, probably never going to get it.")
         return None
 
-    def check_flag(self, flag, max_retries = 10):
-        prompt = prompts.check_flags.format(flag=flag)
+    def check_flags(self, flags, max_retries = 10):
+        prompt = prompts.prompt_check_flags.format(flags=flags)
+        print(prompt)
         self.add_user_msg(prompt)
         for _ in range (max_retries):
             text = self.run_once()
-            out = self.parse_output_text(text)
-            if out != None:
-                print(out)
-                return out
+            flagged = self.parse_output_text(text)
+            if flagged == None:
+                continue
+            #breakpoint()
+            if len(flagged) > 0: print("FLAGGED: ", flagged)
+            assert flagged.keys() <= flags.keys()
+            #more error checking?
+            return flagged
         breakpoint()
         return None
 
@@ -63,13 +70,14 @@ class Chat:
             role="user", #if you want to add a system message, change to system (but i don't need that)
             parts=[mytextpart]
         )
+        assert text != None and text != ''
         self.messages.append(content)
 
     def run_once(self) -> str:
         try:
             response = client.models.generate_content(
                 model=os.getenv("GEMINI_MODEL"),    # e.g., "gemini-1.5-pro"
-                contents=self.messages[1:],
+                contents=self.messages[1:] if len(self.messages[1:]) > 0 else None,
                 config=types.GenerateContentConfig(
                     automatic_function_calling=types.AutomaticFunctionCallingConfig(
                         maximum_remote_calls=15
@@ -84,11 +92,12 @@ class Chat:
             )
         except Exception as e:
             print(f"Error running completion: {e}")
-            print("Waiting 10 seconds then rerunning.")
-            time.sleep(10)
+            print("Waiting 2 seconds then rerunning.")
+            time.sleep(2)
             return ""
 
-
+        global completions
+        completions += 1
 
         main_response = response.candidates[0].content
         self.messages.append(main_response)
@@ -154,6 +163,8 @@ def create_chat(sys_prompt: str, user_prompt, breakpoint_on_failure: bool = Fals
     chat = Chat(messages=messages, breakpoint_on_failure=breakpoint_on_failure, fact_list_from_output=fact_list_from_output)
     if user_prompt is not None:
         chat.add_user_msg(user_prompt)
+    #print(chat.messages)
+    #breakpoint()
     return chat
 
 
@@ -215,8 +226,8 @@ def diff_query_output(a, b, sig_figs=1):
         for k, v in d.items():
             if isinstance(v, (float, int)):
                 norm[k] = round_sig(v, sig_figs)
-            elif not isinstance(v, Hashable):
-                return True
+            elif isinstance(v, list):
+                norm[k] = tuple(sorted(v))
             else:
                 norm[k] = v
         return norm

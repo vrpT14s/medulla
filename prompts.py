@@ -29,6 +29,24 @@ Correct output:
 Please correct this and send the new fixed response. You can change either or both query or output. You must change the observations you made as well if they are no longer accurate with the new query/output.
 """
 
+prompt_check_flags = """
+Based on the analysis you've done as well as the analysis of the previous sections in the rest of the report, please choose whether or not you will mark some issues as causes for inefficiency. Only flag them if you think fixing that issue can cause a large, marked improvement, say at least 25%. We are not worried about smaller issues at this stage.
+
+Here are the choices of flags you have:
+{flags}
+
+You should flag multiple issues if multiple hold true.
+
+You should respond with a dict mapping from a flag name to the reason why it was flagged, explaining how much improvement you think could be gotten from fixing it.
+Example:
+{{
+    "MISALIGNED_ACCESS" : "99.5% of all reads and thus 48% of all operations in the program were misaligned. This means almost all of the time spent reading, which was 80% of the total cumulative time compared to write and metadata, was spent on misaligned accesses, and thus there is great scope for improvement.",
+    "NO_MPIIO_USAGE" : "MPIIO table does not exist in the database."
+}}
+
+Although you are free to make queries still, we do not believe you will need to do so, and that all information should already exist in your current analysis and analysis from previous sections.
+"""
+
 
 #-------------------------------------------------- BRAIN --------------------------------------------------
 prompt_skel_brain = """
@@ -77,13 +95,13 @@ A data source is a collection of tables from a specific log along with expert de
 
 {data_sources}
 
-You have two tools available to you that you MUST use in order to understand the log: ```get_schema``` to get the schema and the expert descriptions, and ```sql_query``` to run a sql query and get back results. You MUST run the tool get_schema to understand the schema before running sql_query. You must run either tool as many times as you'd like until you feel satisfied with the accuracy of the analysis in this section. Every number MUST come from the database and through a SQL query. You MUST use these tools to make conclusions about this log.
+You have two tools available to you that you MUST use in order to understand the log: ```get_schema``` to get the schema and the expert descriptions, and ```sql_query``` to run a sql query and get back results. You MUST run the tool get_schema to understand the schema before running sql_query. You must run either tool as many times as you'd like until you feel satisfied with the accuracy of the analysis in this section. Every number MUST come from the database and through a SQL query, however it is fine to use numbers from previous analysis sections, as those were all found by running SQL queries. However only do this if it's unequivocal and obvious and when in doubt/when the wording isn't clear, then rerun the query and recompute.
 
 Do NOT use sql_query to get the schema of a table, instead use the expert descriptions. You will not need any other columns.
 
 (sql_query uses postgres syntax).
 
-Avoid doing arithmetic by hand. Remember to pay attention to the output example of the parent section.
+Avoid doing arithmetic by hand. Remember to pay attention to the output example of the parent section. Avoid joining tables fully unnecessarily as they can be quite large.
 """
 
 prompt_skel_header = """
