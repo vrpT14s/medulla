@@ -1,4 +1,4 @@
-# Full list of columns of POSIX table (A record represents how a certain rank interacted with a certain file_name)
+# Full list of columns of POSIX table (A record represents how a certain rank interacted with a certain file_name, so one record per rank-filename pair except when record aggregation happens)
 rank: MPI rank (process ID within job)
 file_name: Path of the file accessed
 

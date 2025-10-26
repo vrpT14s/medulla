@@ -1,142 +1,109 @@
 import chat
-from markdown_to_dict import trees #i should change this to use anytree instead, later
+from markdown_to_tree import root
 
 #-----------------SECTION:STEM--------------------------
-def find_node_by_id(tree, target_id):
-    """
-    Recursively search the tree rooted at `node` for a node with id == target_id.
-    Returns the node dict if found, else None.
-    """
-    if tree.get("id") == target_id:
-        return tree
-
-    for child in tree.get("children", []):
-        result = find_node_by_id(child, target_id)
-        if result:
-            return result
-
-    return None
+from anytree.search import find
+def find_node(root, name):
+    return find(root, lambda n: n.name == name)
 
 
-def attach_prompt(node, parents):
-    description = ""
-    if node.get("description"):
-        description = f"\nDescription of current section: {node['description']}"
+def attach_prompt(node):
+    if node.example != '':
+        example = f"Example analysis:\n{node.example}"
+    else:
+        example = ''
 
-    parents_toc = "This is the topmost root section."
-    if parents:
-        snippet = "\n".join(f"{pi[0]} {pi[1]['title']}{'' if not pi[1].get('description') else ' - ' + pi[1]['description']}" for pi in parents)
-        parents_toc = f"""
-Snippet of table of contents for context:
-{snippet}
-""".strip()
+    assert len(node.ancestors) != 0
+    nums = [] #bug if we're dealing with topmost section
+    table_of_contents = []
+    for p in list(node.ancestors[1:]) + [node]:
+        nums += [p.child_number]
+        section_number = '.'.join(str(num) for num in nums)
+        node.section_number = section_number
+        text = f"{section_number} - {p.title}"
+        #breakpoint()
+        if hasattr(p, 'example') and p.example:
+            text += f" [Example: {p.example}]"
+        table_of_contents += [text]
+    parents_toc = '\n'.join(table_of_contents)
 
     import nerves, descriptions, prompts
-    node["sys_prompt"] = (
+    node.sys_prompt = (
         prompts.prompt_skel_brain.format(
-            title=node["title"],
-            description=description,
+            title=node.title,
+            example=example,
             parents_toc=parents_toc,
         )
         + prompts.prompt_skel_medulla
         + prompts.prompt_skel_nerves.format(data_sources=descriptions.list_tables())
+        + prompts.prompt_skel_header.format(header_info=nerves.sql_query("select nprocs, runtime from header;")['output'][0])
     )
 
-    if node.get('context_from'):
-        ctx_id = node['context_from']
-        subnode = find_node_by_id(trees[0], ctx_id)
+    if hasattr(node, 'context_from'):
+        ctx_id = node.context_from
+        subnode = find_node(root, ctx_id)
         #context = subnode['summary']
-        context = '\n'.join([x['conclusion'] for x in subnode['value']['analysis']])
+        #context = '\n'.join([x['conclusion'] for x in subnode['value']['analysis']])
+        context  = get_value(subnode)
         print(context)
         #breakpoint()
-        node["sys_prompt"] += prompts.prompt_skel_context.format(context=context)
+        node.sys_prompt += prompts.prompt_skel_context.format(context=context)
 
-    print(node['sys_prompt'])
+    if getattr(node.parent, 'children_eval', None) == 'sequential':
+        siblings = node.parent.children
+        assert node in siblings
+        less_siblings = siblings[:siblings.index(node)]
+        if len(less_siblings) > 0:
+            previous_section_conclusions = '\n'.join(sib.value for sib in less_siblings)
+            node.sys_prompt += \
+                prompts.prompt_skel_accum.format(previous_section_conclusions=previous_section_conclusions)
+
+    print(node.sys_prompt)
 
 def attach_node_value(node):
+    approach = getattr(node, 'approach', "Please rely on the title and the description.")
+    node.chat = chat.create_chat(node.sys_prompt, approach, breakpoint_on_failure = True, fact_list_from_output = lambda x: x)
 
-    approach = "Please rely on the title and the description."
-    if node.get('approach'):
-        approach = node['approach']
-    node['chat'] = chat.create_chat(node["sys_prompt"], approach, breakpoint_on_failure = True, fact_list_from_output = lambda x: x['analysis'])
+    while getattr(node, 'facts', None) == None:
+        node.facts = node.chat.run_until_completion() #i need to add flag handling after completion
 
-    while node.get('value') is None:
-        node['value'] = node['chat'].run_until_completion() #i need to add flag handling after completion
-    #assert node['value'], "Either mistake in code or ran out of retries"
-
-    #breakpoint()
-    print(f"pattern present - f{node.get('pattern_detected')}")
+    conclusions = '\n'.join([fact['conclusion'] for fact in node.facts])
+    node.value = f"> {node.section_number}: {node.title}\n{conclusions}\n"
+    print(node.value)
+    breakpoint()
 
 
-def handle(node, parents=None, number_prefix="1"):
-    if parents is None:
-        parents = []
+def handle(node):
+    if len(node.children) > 1:
+        for child in node.children:
+            handle(child)
 
-    # Compute the current section number
-    if parents:
-        section_number = f"{number_prefix}"
+        subsections = '\n'.join([child.value for child in node.children])
+        node.value = f"> {node.section_number}: {node.title}\n{subsections}\n"
     else:
-        section_number = "1"
-
-    # Append current node to parents
-    current_parents = parents + [(section_number, node)]
-
-    if node.get("children"):
-        # Node has children: recurse into them
-        for idx, child in enumerate(node["children"], 1):
-            child_number_prefix = f"{section_number}.{idx}"
-            handle(child, current_parents, number_prefix=child_number_prefix)
-        if node.get("summarize_children"):
-            prompt = f"""
-Summarize what this markdown tells us about the I/O of the application its analyzing:
-#{node.get("title")}
-{node.get("description")}
-
-""" + "\n\n".join(f"##{child['title']}\n{child['value']}" for child in node["children"])
-
-            node['summarychat'] = Chat(prompt, "")
-            node['summary'] = node['summarychat'].call_llm()
-            print(f"SUMMARY RECEIVED:\n{node['summary']}")
-
-    else:
-        # Leaf node: attach prompt and run LLM
-        attach_prompt(node, current_parents)
+        attach_prompt(node)
         attach_node_value(node)
-        print(f"Section {section_number}: {node['title']}")
-        print(node['value'])
 
-from anytree import Node, RenderTree
-def dict_to_anytree(d, parent=None):
-    # name is required
-    node_name = d.get("title", "Unnamed")
+def get_value(node):
+    if getattr(node, 'value'):
+        return node.value
+    else:
+        handle(node)
 
-    # other attributes
-    node_attrs = {k: v for k, v in d.items() if k not in ("children", "title")}
-
-    node = Node(node_name, parent=parent, **node_attrs)
-
-    for child in d.get("children", []):
-        dict_to_anytree(child, node)
-
-    return node
-
-root = dict_to_anytree(trees[0])
+from anytree import RenderTree
 for pre, _, node in RenderTree(root):
-    print(f"{pre}{node.name}: {getattr(node, 'description', '')}")
-handle(trees[0])
-print(RenderTree(dict_to_anytree(trees[0])))
-from pprint import pprint
-#pprint(trees[0])
+    print(f"{pre}{node.name}: {getattr(node, 'example', '')}")
+handle(root)
 
-breakpoint()
-anyt = dict_to_anytree(trees[0])
-for leaf in anyt.leaves:
-    value = getattr(leaf, "value", None)
-    if value and value.get('pattern_detected'):
-        print(f"----- {leaf.name} -----")  # heading
-        analysis_list = value.get('analysis', [])
-        for i, item in enumerate(analysis_list):
-            conclusion = item.get('conclusion')
-            if conclusion:
-                print(f"{i+1}. {conclusion}")
-        print()  # newline between leaves
+for pre, _, node in RenderTree(root):
+    print(f"{pre}{node.name}: {getattr(node, 'value', '')}")
+#for leaf in root.leaves:
+#    value = getattr(leaf, "value", None)
+#    if value and value.get('pattern_detected'):
+#        print(f"----- {leaf.name} -----")  # heading
+#        analysis_list = value.get('analysis', [])
+#        for i, item in enumerate(analysis_list):
+#            conclusion = item.get('conclusion')
+#            if conclusion:
+#                print(f"{i+1}. {conclusion}")
+#        print()  # newline between leaves

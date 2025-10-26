@@ -49,33 +49,38 @@ def get_schema(name: str):
 
     descriptions = {
         "lustre": """
-Do not access this table! Under construction.
+There was an error accessing this schema!
 """,
         "stdio": """
-Do not access this table! Under construction.
+There was an error accessing this schema!
 """,
         "posix": """
-Do not access this table! Under construction.
+There was an error accessing this schema!
 """,
         "mpiio": """
-Do not access this table! Under construction.
+There was an error accessing this schema!
 """,
     }
-    with open("posix_cols.txt", 'r') as posix_file:
+    with open("datasource-descriptions/posix_cols.txt", 'r') as posix_file:
         descriptions['posix'] = posix_file.read()
-    with open("mpiio_cols.txt", 'r') as mpiio_file:
+    with open("datasource-descriptions/mpiio_cols.txt", 'r') as mpiio_file:
         descriptions['mpiio'] = mpiio_file.read()
-    with open("stdio_cols.txt", 'r') as stdio_file:
+    with open("datasource-descriptions/stdio_cols.txt", 'r') as stdio_file:
         descriptions['stdio'] = stdio_file.read()
-    with open("lustre_cols.txt", 'r') as lustre_file:
+    with open("datasource-descriptions/lustre_cols.txt", 'r') as lustre_file:
         descriptions['lustre'] = lustre_file.read()
 
     return descriptions[name.lower()]
 
 def list_tables():
     import nerves
-    tables = nerves.sql_query("select name from sqlite_master where type = 'table';")
+    tables = nerves.sql_query("""
+SELECT tablename as name
+FROM pg_tables
+WHERE schemaname = 'public';
+""")
     tables = tables['output']
+    print(tables)
 
     table_names = [row["name"] for row in tables]
     return '\n\n'.join(short_descriptions.get(n.lower()) for n in table_names if n.lower() in short_descriptions.keys())

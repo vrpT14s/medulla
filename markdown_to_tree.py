@@ -56,6 +56,7 @@ def parse_section_tree_list(headers, start=0):
     return trees
 
 import yaml
+frontmatter_keys = set()
 def attach_content(root, lines):
     content_lines = "".join(lines[root["line_start"]:root["content_line_end"]])
     analyzer = MarkdownAnalyzer.from_string(content_lines)
@@ -63,20 +64,24 @@ def attach_content(root, lines):
 
     cb = analyzer.identify_code_blocks().get("Code block")
     if cb is not None:
+        global frontmatter_keys
         assert(len(cb) == 1) #only 1 frontmatter
         frontmatter_text = cb[0]["content"] #TODO: default is yaml but add support for other langs like json
         print(frontmatter_text)
         frontmatter = yaml.safe_load(frontmatter_text)
         root |= frontmatter #adds all the k-v pairs to the root dict
+        frontmatter_keys |= set(frontmatter.keys())
 
+    root['approach'] = ''
     paras = analyzer.identify_paragraphs().get("Paragraph")
     if paras is not None:
         root['approach'] = "\n\n".join(paras)
 
+    root['example'] = ''
     quotes = analyzer.identify_blockquotes().get('Blockquote')
     if quotes is not None:
         assert(len(quotes) == 1) #only 1 desc
-        root['description'] = quotes[0]
+        root['example'] = quotes[0]
 
     for child in root["children"]:
         attach_content(child, lines)
@@ -93,3 +98,37 @@ for tree in trees:
 
 def get_outline_trees():
     return trees
+
+from anytree import Node, RenderTree
+def dict_to_anytree(d, parent=None):
+    # name is required
+    if d.get('id'):
+        node_name = d['id']
+    else:
+        node_name = d['title']
+
+    # other attributes
+    node_attrs = {k: v for k, v in d.items()
+        if k in set(['title', 'id', 'example', 'approach']) | frontmatter_keys
+    }
+
+    node = Node(node_name, parent=parent, **node_attrs)
+
+    for child in d.get("children", []):
+        dict_to_anytree(child, node)
+
+    return node
+
+root = dict_to_anytree(trees[0])
+import postparse
+postparse.process_node(root)
+#print(RenderTree(root))
+for pre, _, node in RenderTree(root):
+    attrs = []
+    attrs.append(f"title={node.title!r}")
+    if hasattr(node, "children_eval"):
+        attrs.append(f"children_eval={node.children_eval!r}")
+    if hasattr(node, "flags"):
+        attrs.append(f"flags={node.flags!r}")
+    print(f"{pre}" + ", ".join(attrs))
+#`breakpoint()

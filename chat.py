@@ -44,6 +44,18 @@ class Chat:
         print(f"Model couldn't fix output after {max_runs}, probably never going to get it.")
         return None
 
+    def check_flag(self, flag, max_retries = 10):
+        prompt = prompts.check_flags.format(flag=flag)
+        self.add_user_msg(prompt)
+        for _ in range (max_retries):
+            text = self.run_once()
+            out = self.parse_output_text(text)
+            if out != None:
+                print(out)
+                return out
+        breakpoint()
+        return None
+
     def add_user_msg(self, text: str):
         #refer to the confusing genai api docs
         mytextpart = types.Part.from_text(text=text)
@@ -71,9 +83,9 @@ class Chat:
                 ),
             )
         except Exception as e:
-            print("Error running completion: {e}")
+            print(f"Error running completion: {e}")
             print("Waiting 10 seconds then rerunning.")
-            time.delay(10)
+            time.sleep(10)
             return ""
 
 
@@ -138,10 +150,10 @@ class Chat:
 
 def create_chat(sys_prompt: str, user_prompt, breakpoint_on_failure: bool = False, fact_list_from_output: bool = lambda x: x) -> Chat:
     messages = [sys_prompt]
-    if user_prompt is not None:
-        messages.append(user_prompt)
 
     chat = Chat(messages=messages, breakpoint_on_failure=breakpoint_on_failure, fact_list_from_output=fact_list_from_output)
+    if user_prompt is not None:
+        chat.add_user_msg(user_prompt)
     return chat
 
 
@@ -187,6 +199,7 @@ def round_sig(x, sig_figs):
     from math import log10, floor
     return round(x, sig_figs - int(floor(log10(abs(x)))) - 1)
 
+from collections.abc import Hashable
 def diff_query_output(a, b, sig_figs=1):
     """
     Compare two list-of-dicts objects.
@@ -202,6 +215,8 @@ def diff_query_output(a, b, sig_figs=1):
         for k, v in d.items():
             if isinstance(v, (float, int)):
                 norm[k] = round_sig(v, sig_figs)
+            elif not isinstance(v, Hashable):
+                return True
             else:
                 norm[k] = v
         return norm
